@@ -2,6 +2,7 @@
 
 👉 **在线交互式 3D 教程体验地址（GitHub Pages）：[https://lmxxf.github.io/DLSS5-Explanation/](https://lmxxf.github.io/DLSS5-Explanation/)**
 🎨 **AI 经典基准展厅总入口 (`AIDemo/`)：[https://lmxxf.github.io/DLSS5-Explanation/AIDemo/](https://lmxxf.github.io/DLSS5-Explanation/AIDemo/)**
+  - 🏎️ **鹈鹕皮特卡丁车大奖赛 (`PelicanKart`)：[https://lmxxf.github.io/DLSS5-Explanation/AIDemo/PelicanKart/](https://lmxxf.github.io/DLSS5-Explanation/AIDemo/PelicanKart/)**
   - 🏍️ **摩托动力与制动 AI 辅助工程工作台 (`MotoEngineeringAI`)：[https://lmxxf.github.io/DLSS5-Explanation/AIDemo/MotoEngineeringAI/](https://lmxxf.github.io/DLSS5-Explanation/AIDemo/MotoEngineeringAI/)**
   - ☀️ **太阳能朋克像素天空城 (`SolarpunkCity`)：[https://lmxxf.github.io/DLSS5-Explanation/AIDemo/SolarpunkCity/](https://lmxxf.github.io/DLSS5-Explanation/AIDemo/SolarpunkCity/)**
   - 🦩 **鹈鹕皮特的海滨骑行 (`PelicanCycling`)：[https://lmxxf.github.io/DLSS5-Explanation/AIDemo/PelicanCycling/](https://lmxxf.github.io/DLSS5-Explanation/AIDemo/PelicanCycling/)**

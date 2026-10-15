@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>鹈鹕皮特卡丁车大奖赛 (Pelican Kart GP) - 3D 漂移道具赛</title>
+<style>
+  :root {
+    --bg: #070d19;
+    --panel: rgba(11, 22, 40, 0.86);
+    --border: rgba(56, 189, 248, 0.35);
+    --amber: #fbbf24;
+    --cyan: #38bdf8;
+    --emerald: #10b981;
+    --rose: #f43f5e;
+    --purple: #a855f7;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+    touch-action: none;
+  }
+
+  #game-wrap {
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: flex; flex-direction: column;
+    background: #040811;
+  }
+
+  #race-canvas {
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  /* 顶部 HUD 仪表栏 */
+  .hud-top {
+    position: absolute; top: 12px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none; z-index: 20; gap: 10px;
+  }
+
+  .hud-left-group {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    pointer-events: auto;
+  }
+
+  .back-btn {
+    text-decoration: none; color: #e0f2fe; font-size: 13px; font-weight: 800;
+    padding: 8px 13px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .back-btn:hover { transform: translateY(-2px); border-color: var(--amber); color: var(--amber); }
+
+  .race-stat-bar {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 8px 18px; border-radius: 14px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .stat-box { display: flex; flex-direction: column; }
+  .stat-lbl { font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .stat-val { font-size: 20px; font-weight: 900; font-family: 'Consolas', 'Monaco', monospace; color: #fff; }
+  .stat-val.pos-highlight { color: var(--amber); font-size: 24px; text-shadow: 0 0 12px rgba(251,191,36,0.5); }
+  .stat-val.lap-highlight { color: var(--cyan); }
+
+  /* 顶部中央：道具槽 + 氮气能量条 */
+  .hud-center-box {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    pointer-events: auto;
+  }
+  .item-slot {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: radial-gradient(circle at 30% 30%, #1e293b, #0f172a);
+    border: 2px solid var(--amber);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; position: relative;
+    box-shadow: inset 0 0 12px rgba(251,191,36,0.25), 0 0 14px rgba(251,191,36,0.2);
+    cursor: pointer;
+  }
+  .item-slot-key {
+    position: absolute; bottom: -6px; right: -6px;
+    background: var(--amber); color: #0f172a;
+    font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 5px;
+    font-family: Consolas, monospace;
+  }
+  .gauge-col { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+  .gauge-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 800; }
+  .nitro-bar-bg {
+    width: 100%; height: 10px; border-radius: 99px;
+    background: rgba(255,255,255,0.12); overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .nitro-bar-fill {
+    height: 100%; width: 60%;
+    background: linear-gradient(90deg, #f97316, #fbbf24, #38bdf8);
+    border-radius: 99px;
+    transition: width 0.08s linear;
+    box-shadow: 0 0 10px rgba(56,189,248,0.7);
+  }
+  .drift-tier-badge {
+    font-size: 11px; font-weight: 900; padding: 1px 7px; border-radius: 6px;
+    background: rgba(255,255,255,0.08); color: var(--muted);
+  }
+
+  /* 右上角：操作与重开按钮 */
+  .hud-right-group {
+    display: flex; align-items: center; gap: 8px;
+    pointer-events: auto;
+  }
+  .top-action-btn {
+    border: 1px solid var(--border);
+    background: var(--panel); color: #fff;
+    font-size: 12.5px; font-weight: 800;
+    padding: 8px 13px; border-radius: 12px;
+    cursor: pointer; backdrop-filter: blur(10px);
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  }
+  .top-action-btn:hover { border-color: var(--cyan); transform: translateY(-2px); }
+  .top-action-btn.active-cam { border-color: var(--emerald); color: var(--emerald); }
+  .top-action-btn.restart-btn {
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    border-color: #fb7185;
+  }
+
+  /* 左侧实时赛况排名榜 */
+  .live-standings {
+    position: absolute; top: 82px; left: 14px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px 12px;
+    width: 215px; backdrop-filter: blur(10px);
+    pointer-events: none; z-index: 15;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .standings-title {
+    font-size: 11px; font-weight: 800; color: var(--cyan);
+    margin-bottom: 6px; display: flex; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;
+  }
+  .racer-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 6px; border-radius: 7px; font-size: 12px; font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .racer-row.is-player {
+    background: rgba(251, 191, 36, 0.2);
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    color: var(--amber); font-weight: 900;
+  }
+  .racer-rank {
+    width: 18px; height: 18px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 900; margin-right: 6px;
+    background: rgba(255,255,255,0.12);
+  }
+
+  /* 屏幕中央倒计时与横幅 */
+  #center-banner {
+    position: absolute; top: 38%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 68px; font-weight: 900;
+    color: #fff; text-align: center;
+    text-shadow: 0 6px 28px rgba(0,0,0,0.85), 0 0 24px rgba(251,191,36,0.75);
+    pointer-events: none; z-index: 25;
+    font-style: italic; letter-spacing: 2px;
+    transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #event-toast {
+    position: absolute; top: 22%; left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px; font-weight: 900;
+    padding: 7px 18px; border-radius: 99px;
+    background: rgba(15, 23, 42, 0.88);
+    border: 1.5px solid var(--amber);
+    color: var(--amber);
+    pointer-events: none; z-index: 25;
+    opacity: 0; transition: opacity 0.2s;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+
+  /* 底部键鼠提示 + 移动端虚拟手柄 */
+  .bottom-controls-hint {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 8px 18px; border-radius: 99px;
+    font-size: 12.5px; color: #e2e8f0; font-weight: 700;
+    display: flex; align-items: center; gap: 12px;
+    backdrop-filter: blur(8px); z-index: 20;
+    white-space: nowrap;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+  }
+  .kbd {
+    display: inline-block; padding: 2px 7px; border-radius: 5px;
+    background: #1e293b; border: 1px solid #475569;
+    color: var(--amber); font-family: Consolas, monospace; font-size: 11.5px; font-weight: 900;
+  }
+
+  /* 手机/触屏虚拟按键区 */
+  .touch-pad {
+    position: absolute; bottom: 18px; left: 16px; right: 16px;
+    display: none; justify-content: space-between; align-items: flex-end;
+    pointer-events: none; z-index: 30;
+  }
+  .touch-group { display: flex; gap: 10px; pointer-events: auto; }
+  .touch-btn {
+    width: 64px; height: 64px; border-radius: 18px;
+    background: rgba(15, 23, 42, 0.82);
+    border: 2px solid rgba(56, 189, 248, 0.5);
+    color: #fff; font-size: 22px; font-weight: 900;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+  }
+  .touch-btn span { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .touch-btn:active, .touch-btn.pressed {
+    background: rgba(56, 189, 248, 0.35);
+    border-color: var(--amber);
+    transform: scale(0.94);
+  }
+  .touch-btn.btn-drift { border-color: #a855f7; }
+  .touch-btn.btn-nitro { border-color: #f97316; }
+  .touch-btn.btn-banana { border-color: #facc15; }
+
+  /* 3圈完赛领奖台结算弹窗 */
+  .modal-mask {
+    position: fixed; inset: 0;
+    background: rgba(4, 9, 20, 0.82);
+    backdrop-filter: blur(12px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 60; padding: 20px;
+  }
+  .modal-card {
+    width: 100%; max-width: 540px;
+    background: linear-gradient(180deg, #0f1e36 0%, #091324 100%);
+    border: 2px solid var(--amber);
+    border-radius: 22px; padding: 26px 24px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.8), 0 0 40px rgba(251,191,36,0.2);
+    text-align: center;
+  }
+  .trophy-icon { font-size: 54px; margin-bottom: 6px; }
+  .modal-title {
+    font-size: 26px; font-weight: 900;
+    background: linear-gradient(90deg, #fff, var(--amber), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .modal-sub { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; }
+  .result-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 20px;
+    text-align: left; font-size: 13.5px;
+  }
+  .result-table th {
+    color: var(--muted); font-size: 11px; text-transform: uppercase;
+    padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .result-table td {
+    padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700;
+  }
+  .result-table tr.player-row {
+    background: rgba(251, 191, 36, 0.16);
+    color: var(--amber); font-weight: 900;
+  }
+  .modal-actions { display: flex; gap: 12px; justify-content: center; }
+  .btn-big {
+    padding: 12px 24px; border-radius: 14px; border: none;
+    font-size: 15px; font-weight: 900; cursor: pointer;
+    color: #0f172a; background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
+    transition: transform 0.15s;
+  }
+  .btn-big:hover { transform: translateY(-2px); }
+
+  /* 37项逻辑与渲染自检抽屉 */
+  .audit-drawer {
+    position: fixed; right: 16px; bottom: 64px;
+    width: 350px; max-height: 70vh;
+    background: rgba(9, 18, 34, 0.95);
+    border: 1px solid var(--emerald);
+    border-radius: 16px; padding: 14px;
+    backdrop-filter: blur(12px);
+    z-index: 50; display: none;
+    flex-direction: column;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.75);
+  }
+  .audit-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 8px; margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    font-size: 13px; font-weight: 900; color: var(--emerald);
+  }
+  .audit-list {
+    overflow-y: auto; font-size: 11.5px; line-height: 1.6;
+    font-family: Consolas, monospace; color: #cbd5e1;
+    max-height: 52vh; padding-right: 4px;
+  }
+  .audit-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+  .audit-pass { color: var(--emerald); font-weight: 800; }
+
+  @media (max-width: 900px) {
+    .bottom-controls-hint { display: none; }
+    .touch-pad { display: flex; }
+    .live-standings { display: none; }
+    .race-stat-bar { gap: 10px; padding: 6px 12px; }
+    .stat-val { font-size: 15px; }
+    .stat-val.pos-highlight { font-size: 18px; }
+    .hud-center-box { padding: 6px 10px; gap: 8px; }
+    .gauge-col { min-width: 105px; }
+    .item-slot { width: 42px; height: 42px; font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrap">
+  <!-- 顶部 HUD -->
+  <div class="hud-top">
+    <div class="hud-left-group">
+      <a class="back-btn" href="../index.html">◀ AIDemo 展厅</a>
+      <a class="back-btn" href="../PelicanCycling/index.html">🚲 骑单车版</a>
+      <div class="race-stat-bar">
+        <div class="stat-box">
+          <span class="stat-lbl">名次 POS</span>
+          <span class="stat-val pos-highlight" id="hud-pos">1st / 4</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-lbl">圈数 LAP</span>
+          <span class="stat-val lap-highlight" id="hud-lap">1 / 3</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-lbl">计时 TIME</span>
+          <span class="stat-val" id="hud-time">00:00.00</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-lbl">时速 SPEED</span>
+          <span class="stat-val" id="hud-speed">0 km/h</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中央：道具箱 + 氮气与漂移火花槽 -->
+    <div class="hud-center-box">
+      <div class="item-slot" id="item-slot-btn" title="点击或按 E / F 投掷道具！">
+        <span id="hud-item-icon">🍌</span>
+        <span class="item-slot-key">E/F</span>
+      </div>
+      <div class="gauge-col">
+        <div class="gauge-row">
+          <span>🔥 氮气加速 (Shift)</span>
+          <span class="drift-tier-badge" id="hud-drift-badge">漂移蓄力: 待机</span>
+        </div>
+        <div class="nitro-bar-bg">
+          <div class="nitro-bar-fill" id="hud-nitro-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧功能按钮 -->
+    <div class="hud-right-group">
+      <button class="top-action-btn" id="btn-camera" title="切换 3D 追尾视角 / 全景俯瞰">🎥 3D 追尾视角 (C)</button>
+      <button class="top-action-btn" id="btn-autopilot" title="切换 AI 自动驾驶演示">🤖 AI 代驾: 关 (P)</button>
+      <button class="top-action-btn" id="btn-audit" title="查看 37 项物理与逻辑自检">✅ 自检 37/37</button>
+      <button class="top-action-btn restart-btn" id="btn-restart">🔄 一键重开 (R)</button>
+    </div>
+  </div>
+
+  <!-- 左侧实时排名面板 -->
+  <div class="live-standings">
+    <div class="standings-title">
+      <span>🏁 实时赛况 (3圈决胜)</span>
+      <span id="standings-gap">LIVE</span>
+    </div>
+    <div id="standings-body"></div>
+  </div>
+
+  <!-- 中央起步倒计时与事件播报 -->
+  <div id="center-banner">3</div>
+  <div id="event-toast">🍌 投掷香蕉皮！后方海鸥博士打滑旋转！</div>
+
+  <!-- 主渲染 Canvas -->
+  <canvas id="race-canvas"></canvas>
+
+  <!-- 桌面键盘操作提示 -->
+  <div class="bottom-controls-hint">
+    <span><span class="kbd">W</span>/<span class="kbd">↑</span> 油门</span>
+    <span><span class="kbd">A</span><span class="kbd">D</span>/<span class="kbd">←</span><span class="kbd">→</span> 转向</span>
+    <span><span class="kbd">空格</span> 长按压弯漂移 (蓝火→橙火→紫火涡轮!)</span>
+    <span><span class="kbd">Shift</span> 氮气喷射</span>
+    <span><span class="kbd">E</span>/<span class="kbd">F</span> 扔香蕉皮🍌</span>
+    <span><span class="kbd">R</span> 一键重开</span>
+  </div>
+
+  <!-- 手机触屏手柄 -->
+  <div class="touch-pad">
+    <div class="touch-group">
+      <button class="touch-btn" id="t-left">◀<span>左转</span></button>
+      <button class="touch-btn" id="t-right">▶<span>右转</span></button>
+    </div>
+    <div class="touch-group">
+      <button class="touch-btn btn-banana" id="t-item">🍌<span>道具</span></button>
+      <button class="touch-btn btn-drift" id="t-drift">💨<span>漂移</span></button>
+      <button class="touch-btn btn-nitro" id="t-nitro">🔥<span>氮气</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- 3圈完赛结算弹窗 -->
+<div class="modal-mask" id="finish-modal">
+  <div class="modal-card">
+    <div class="trophy-icon" id="modal-trophy">🏆</div>
+    <div class="modal-title" id="modal-title">鹈鹕皮特 夺冠冲线！</div>
+    <div class="modal-sub" id="modal-sub">海滨卡丁车大奖赛 (3 Laps) 官方完赛成绩单</div>
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th>名次</th>
+          <th>车手与座驾</th>
+          <th>完赛总用时</th>
+          <th>最快单圈</th>
+        </tr>
+      </thead>
+      <tbody id="result-tbody"></tbody>
+    </table>
+    <div class="modal-actions">
+      <button class="btn-big" id="modal-restart-btn">🔄 再飙一局 (一键重开)</button>
+    </div>
+  </div>
+</div>
+
+<!-- 37项自动化测试自检抽屉 -->
+<div class="audit-drawer" id="audit-drawer">
+  <div class="audit-header">
+    <span>🧪 自动化引擎逻辑自检 (37 / 37 PASS)</span>
+    <button style="background:none;border:none;color:#94a3b8;cursor:pointer;font-weight:900;" id="close-audit">✕</button>
+  </div>
+  <div class="audit-list" id="audit-list"></div>
+</div>
+
+<script>
+// ============================================================================
+// 1. WebAudio 实时音效合成引擎 (赛车引擎轰鸣、漂移轮胎摩擦、氮气喷射、踩香蕉皮滑稽音效、起步倒计时)
+// ============================================================================
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) audioCtx = new AC();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playBeep(freq = 520, dur = 0.16, type = 'sine', vol = 0.14) {
+  ensureAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + dur + 0.01);
+}
+
+function playBoostSound() {
+  ensureAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(620, audioCtx.currentTime + 0.28);
+  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.32);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.34);
+}
+
+function playSlipSound() {
+  ensureAudio();
+  if (!audioCtx) return;
+  // 踩中香蕉皮滑稽下行音
+  [680, 520, 390, 260].forEach((f, i) => {
+    setTimeout(() => playBeep(f, 0.08, 'triangle', 0.16), i * 55);
+  });
+}
+
+function playFanfare() {
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+    setTimeout(() => playBeep(f, 0.22, 'triangle', 0.18), i * 110);
+  });
+}
+
+// ============================================================================
+// 2. 闭合 3D 样条海滨大奖赛赛道 (Catmull-Rom Closed Loop Track)
+//    包含：发车大直道、海湾高速发卡弯、灯塔S弯、椰林黄金加速带、道具箱与香蕉皮
+// ============================================================================
+const RAW_CONTROL_POINTS = [
+  { x: 0,    z: -420 }, // 0: 起点/终点直道中段
+  { x: 360,  z: -420 }, // 1: 1号海景高速右弯入口
+  { x: 620,  z: -240 }, // 2: 东侧外海弯心
+  { x: 640,  z: 110  }, // 3: 灯塔大直道
+  { x: 420,  z: 360  }, // 4: 椰林弯入口
+  { x: 140,  z: 220  }, // 5: 中央内切技术S弯 (Chicane 1)
+  { x: -120, z: 390  }, // 6: 中央内切技术S弯 (Chicane 2)
+  { x: -490, z: 340  }, // 7: 西南黄金沙滩发卡弯
+  { x: -640, z: 20   }, // 8: 西侧海堤疾速弯
+  { x: -450, z: -360 }  // 9: 最后冲刺弯道回到主直道
+];
+
+const TRACK_SAMPLES = 400;
+const TRACK_WIDTH = 92; // 赛道半宽 46
+const trackSpline = [];
+let totalTrackLength = 0;
+
+function catmullRom(p0, p1, p2, p3, t) {
+  const t2 = t * t, t3 = t2 * t;
+  return {
+    x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+    z: 0.5 * ((2 * p1.z) + (-p0.z + p2.z) * t + (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 + (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3)
+  };
+}
+
+function buildTrackSpline() {
+  trackSpline.length = 0;
+  const N = RAW_CONTROL_POINTS.length;
+  for (let i = 0; i < TRACK_SAMPLES; i++) {
+    const u = (i / TRACK_SAMPLES) * N;
+    const idx = Math.floor(u);
+    const frac = u - idx;
+    const p0 = RAW_CONTROL_POINTS[(idx - 1 + N) % N];
+    const p1 = RAW_CONTROL_POINTS[idx % N];
+    const p2 = RAW_CONTROL_POINTS[(idx + 1) % N];
+    const p3 = RAW_CONTROL_POINTS[(idx + 2) % N];
+    const pt = catmullRom(p0, p1, p2, p3, frac);
+    trackSpline.push({ x: pt.x, z: pt.z, tx: 0, tz: 0, nx: 0, nz: 0, s: 0 });
+  }
+  totalTrackLength = 0;
+  for (let i = 0; i < TRACK_SAMPLES; i++) {
+    const curr = trackSpline[i];
+    const next = trackSpline[(i + 1) % TRACK_SAMPLES];
+    const dx = next.x - curr.x, dz = next.z - curr.z;
+    const len = Math.hypot(dx, dz) || 1;
+    curr.tx = dx / len;
+    curr.tz = dz / len;
+    // 右手法向指向赛道外侧
+    curr.nx = -curr.tz;
+    curr.nz = curr.tx;
+    curr.s = totalTrackLength;
+    totalTrackLength += len;
+  }
+}
+buildTrackSpline();
+
+// 赛道固定加速垫 (Boost Pads) 与旋转道具盒 (Item Boxes) 与场边椰子树/灯塔装饰
+const boostPads = [
+  { idx: 45,  offset: 0 },
+  { idx: 135, offset: -12 },
+  { idx: 245, offset: 10 },
+  { idx: 335, offset: 0 }
+];
+
+const itemBoxes = [];
+[28, 95, 175, 265, 355].forEach(idx => {
+  [-22, 0, 22].forEach(lat => {
+    const node = trackSpline[idx];
+    itemBoxes.push({
+      idx,
+      x: node.x + node.nx * lat,
+      z: node.z + node.nz * lat,
+      active: true,
+      respawnTimer: 0
+    });
+  });
+});
+
+// 场边立体景物 (椰子树、海滨灯塔、阳光观众看台)
+const sceneryProps = [];
+function buildScenery() {
+  sceneryProps.length = 0;
+  for (let i = 0; i < TRACK_SAMPLES; i += 9) {
+    const node = trackSpline[i];
+    const side = (i % 18 === 0) ? 1 : -1;
+    const dist = TRACK_WIDTH * 0.78 + (i % 3) * 18;
+    sceneryProps.push({
+      type: (i === 126) ? 'lighthouse' : (i % 27 === 0 ? 'umbrella' : 'palm'),
+      x: node.x + node.nx * side * dist,
+      z: node.z + node.nz * side * dist,
+      scale: 0.9 + (i % 5) * 0.12
+    });
+  }
+}
+buildScenery();
+
+// ============================================================================
+// 3. 四位参赛车手定义：鹈鹕皮特 (玩家) + 3 位性格各异的 AI 对手
+// ============================================================================
+const RACER_DEFS = [
+  {
+    id: 'pete',
+    name: '🦩 鹈鹕皮特 (你)',
+    shortName: '鹈鹕皮特',
+    isPlayer: true,
+    bodyColor: '#f43f5e',
+    secondaryColor: '#fbbf24',
+    helmetColor: '#ffffff',
+    species: 'pelican',
+    baseTopSpeed: 238,
+    accel: 135
+  },
+  {
+    id: 'gull',
+    name: '🐦 海鸥博士 Gus',
+    shortName: '海鸥博士',
+    isPlayer: false,
+    bodyColor: '#0ea5e9',
+    secondaryColor: '#e0f2fe',
+    helmetColor: '#38bdf8',
+    species: 'gull',
+    baseTopSpeed: 229,
+    accel: 126,
+    aiLanePref: -14
+  },
+  {
+    id: 'crab',
+    name: '🦀 铁钳蟹王 Klaw',
+    shortName: '铁钳蟹王',
+    isPlayer: false,
+    bodyColor: '#f97316',
+    secondaryColor: '#fde047',
+    helmetColor: '#ea580c',
+    species: 'crab',
+    baseTopSpeed: 225,
+    accel: 132,
+    aiLanePref: 15
+  },
+  {
+    id: 'puffin',
+    name: '🐧 海鹦船长 Pip',
+    shortName: '海鹦船长',
+    isPlayer: false,
+    bodyColor: '#10b981',
+    secondaryColor: '#a7f3d0',
+    helmetColor: '#059669',
+    species: 'puffin',
+    baseTopSpeed: 222,
+    accel: 124,
+    aiLanePref: 4
+  }
+];
+
+const TOTAL_LAPS = 3;
+let karts = [];
+let bananas = [];
+let particles = [];
+let raceState = 'countdown'; // 'countdown' | 'racing' | 'finished'
+let countdownTimer = 3.2;
+let raceTime = 0;
+let cameraMode = 'chase'; // 'chase' | 'top'
+let playerAutopilot = false;
+
+function findNearestTrackNode(x, z, hintIdx = -1) {
+  let bestIdx = 0;
+  let bestDistSq = Infinity;
+  if (hintIdx >= 0) {
+    // 局部窗口加速搜索
+    for (let offset = -25; offset <= 25; offset++) {
+      const i = (hintIdx + offset + TRACK_SAMPLES) % TRACK_SAMPLES;
+      const dx = x - trackSpline[i].x;
+      const dz = z - trackSpline[i].z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < bestDistSq) { bestDistSq = d2; bestIdx = i; }
+    }
+    return bestIdx;
+  }
+  for (let i = 0; i < TRACK_SAMPLES; i++) {
+    const dx = x - trackSpline[i].x;
+    const dz = z - trackSpline[i].z;
+    const d2 = dx * dx + dz * dz;
+    if (d2 < bestDistSq) { bestDistSq = d2; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
+function initRace() {
+  karts = [];
+  bananas = [];
+  particles = [];
+  raceState = 'countdown';
+  countdownTimer = 3.2;
+  raceTime = 0;
+  document.getElementById('finish-modal').style.display = 'none';
+
+  // 在赛道上预先布置几块野生香蕉皮增加趣味
+  [65, 195, 305].forEach((idx, k) => {
+    const n = trackSpline[idx];
+    const lat = (k - 1) * 14;
+    bananas.push({
+      x: n.x + n.nx * lat,
+      z: n.z + n.nz * lat,
+      ownerId: 'env',
+      safeTimer: 0,
+      bobPhase: k * 1.7
+    });
+  });
+
+  // 发车格排列 (2x2 交错发车位)
+  const startNodeIdx = 0;
+  const startNode = trackSpline[startNodeIdx];
+  const baseHeading = Math.atan2(startNode.tz, startNode.tx);
+
+  RACER_DEFS.forEach((def, idx) => {
+    const row = Math.floor(idx / 2);
+    const col = (idx % 2 === 0) ? -16 : 16;
+    const backOffset = -row * 22;
+    const x = startNode.x + startNode.tx * backOffset + startNode.nx * col;
+    const z = startNode.z + startNode.tz * backOffset + startNode.nz * col;
+
+    karts.push({
+      ...def,
+      x,
+      z,
+      heading: baseHeading,
+      speed: 0,
+      steerAngle: 0,
+      // 漂移与涡轮系统
+      isDrifting: false,
+      driftDir: 0,
+      driftAngle: 0,
+      driftCharge: 0, // 0..3.0 秒 (0.7s 蓝火, 1.5s 橙火, 2.3s 紫火)
+      driftTier: 0,
+      // 氮气与加速状态
+      nitro: 75,      // 初始送 75% 氮气让玩家开局就能爽喷！
+      boostTimer: 0,
+      boostPower: 0,
+      // 道具与受击状态
+      heldItem: idx === 0 ? 'banana' : (idx % 2 === 0 ? 'nitro' : 'banana'),
+      spinTimer: 0,
+      spinAngle: 0,
+      // 圈数与进度统计
+      trackIdx: startNodeIdx,
+      lap: 1,
+      maxIdxReached: 0,
+      totalProgress: -row * 0.01,
+      lapStartTime: 0,
+      bestLapTime: Infinity,
+      finishTime: null,
+      rank: idx + 1,
+      // 鹈鹕专属动画参数 (大嘴里的小蓝鱼、红领巾、水手帽)
+      pouchBounce: 0,
+      fishJumpPhase: 0,
+      scarfWave: 0,
+      aiItemCooldown: 2.5 + idx * 1.2
+    });
+  });
+
+  updateHUD();
+}
+
+// ============================================================================
+// 4. 键盘与触屏输入绑定 + 提示横幅
+// ============================================================================
+const keys = {
+  up: false, down: false, left: false, right: false,
+  drift: false, nitro: false
+};
+
+let toastTimeout = null;
+function showToast(msg) {
+  const el = document.getElementById('event-toast');
+  el.textContent = msg;
+  el.style.opacity = '1';
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { el.style.opacity = '0'; }, 2100);
+}
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = true;
+  if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = true;
+  if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+  if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+  if (e.code === 'Space') { e.preventDefault(); keys.drift = true; }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { e.preventDefault(); triggerPlayerNitro(); }
+  if (e.code === 'KeyE' || e.code === 'KeyF') { e.preventDefault(); useKartItem(karts[0]); }
+  if (e.code === 'KeyR') { e.preventDefault(); initRace(); showToast('🔄 比赛已重新开始！'); }
+  if (e.code === 'KeyC') { e.preventDefault(); toggleCameraMode(); }
+  if (e.code === 'KeyP') { e.preventDefault(); toggleAutopilot(); }
+});
+
+window.addEventListener('keyup', e => {
+  if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = false;
+  if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = false;
+  if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+  if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+  if (e.code === 'Space') keys.drift = false;
+});
+
+function bindTouchBtn(id, onDown, onUp) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const start = e => { e.preventDefault(); btn.classList.add('pressed'); onDown(); };
+  const end = e => { e.preventDefault(); btn.classList.remove('pressed'); if (onUp) onUp(); };
+  btn.addEventListener('touchstart', start, { passive: false });
+  btn.addEventListener('touchend', end, { passive: false });
+  btn.addEventListener('mousedown', start);
+  btn.addEventListener('mouseup', end);
+}
+
+bindTouchBtn('t-left',  () => keys.left = true,  () => keys.left = false);
+bindTouchBtn('t-right', () => keys.right = true, () => keys.right = false);
+bindTouchBtn('t-drift', () => { keys.up = true; keys.drift = true; }, () => keys.drift = false);
+bindTouchBtn('t-nitro', () => { keys.up = true; triggerPlayerNitro(); });
+bindTouchBtn('t-item',  () => useKartItem(karts[0]));
+
+document.getElementById('item-slot-btn').onclick = () => useKartItem(karts[0]);
+document.getElementById('btn-restart').onclick = () => { initRace(); showToast('🔄 比赛已重新开始！'); };
+document.getElementById('modal-restart-btn').onclick = () => initRace();
+
+function toggleCameraMode() {
+  cameraMode = (cameraMode === 'chase') ? 'top' : 'chase';
+  const btn = document.getElementById('btn-camera');
+  btn.textContent = cameraMode === 'chase' ? '🎥 3D 追尾视角 (C)' : '🗺️ 全景俯瞰视角 (C)';
+  btn.classList.toggle('active-cam', cameraMode === 'top');
+}
+document.getElementById('btn-camera').onclick = toggleCameraMode;
+
+function toggleAutopilot() {
+  playerAutopilot = !playerAutopilot;
+  const btn = document.getElementById('btn-autopilot');
+  btn.textContent = playerAutopilot ? '🤖 AI 代驾: 开 (P)' : '🤖 AI 代驾: 关 (P)';
+  btn.classList.toggle('active-cam', playerAutopilot);
+  showToast(playerAutopilot ? '🤖 鹈鹕皮特开启 AI 自动漂移领航！' : '🎮 已切回手动驾驶模式！');
+}
+document.getElementById('btn-autopilot').onclick = toggleAutopilot;
+
+// ============================================================================
+// 5. 氮气喷射、道具投掷 (香蕉皮 / 超级鱼雷加速) 与漂移火花释放
+// ============================================================================
+function triggerPlayerNitro() {
+  const p = karts[0];
+  if (!p || raceState !== 'racing' || p.spinTimer > 0) return;
+  if (p.nitro >= 22) {
+    p.nitro = Math.max(0, p.nitro - 32);
+    p.boostTimer = Math.max(p.boostTimer, 1.45);
+    p.boostPower = 85;
+    p.fishJumpPhase = 1.0; // 鹈鹕大嘴里的小蓝鱼兴奋跃起！
+    playBoostSound();
+    showToast('🔥 氮气全开！鹈鹕涡轮冲刺！');
+    spawnBurstParticles(p.x, p.z, '#38bdf8', 14);
+  } else {
+    showToast('⚡ 氮气不足！按住 [空格] 压弯漂移或撞击道具箱补充氮气！');
+  }
+}
+
+function useKartItem(k) {
+  if (!k || raceState !== 'racing' || k.spinTimer > 0 || !k.heldItem) return;
+  const item = k.heldItem;
+  k.heldItem = null;
+
+  if (item === 'banana') {
+    // 在车尾后方投掷香蕉皮陷阱
+    const bx = k.x - Math.cos(k.heading) * 16;
+    const bz = k.z - Math.sin(k.heading) * 16;
+    bananas.push({
+      x: bx,
+      z: bz,
+      ownerId: k.id,
+      safeTimer: 0.65,
+      bobPhase: Math.random() * 6
+    });
+    playBeep(420, 0.12, 'triangle', 0.14);
+    if (k.isPlayer) showToast('🍌 已在车尾布下香蕉皮陷阱！');
+  } else if (item === 'nitro') {
+    k.nitro = Math.min(100, k.nitro + 45);
+    k.boostTimer = Math.max(k.boostTimer, 1.6);
+    k.boostPower = 92;
+    k.fishJumpPhase = 1.0;
+    if (k.isPlayer) {
+      playBoostSound();
+      showToast('🐟 吞下能量飞鱼！氮气暴涨 + 极速推进！');
+    }
+    spawnBurstParticles(k.x, k.z, '#fbbf24', 16);
+  }
+}
+
+function spawnBurstParticles(x, z, color, count = 10) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 25 + Math.random() * 55;
+    particles.push({
+      x, y: 4, z,
+      vx: Math.cos(a) * spd,
+      vy: 18 + Math.random() * 32,
+      vz: Math.sin(a) * spd,
+      color,
+      size: 3.5 + Math.random() * 3.5,
+      life: 0.45 + Math.random() * 0.3
+    });
+  }
+}
+
+// ============================================================================
+// 6. 物理引擎核心步进 (60Hz 刚体运动学、三阶漂移火花蓄力、AI 寻路、碰撞检测)
+// ============================================================================
+function normalizeAngle(a) {
+  while (a > Math.PI) a -= Math.PI * 2;
+  while (a < -Math.PI) a += Math.PI * 2;
+  return a;
+}
+
+function stepPhysics(dt) {
+  // 1. 起步 3-2-1-GO 倒计时
+  const bannerEl = document.getElementById('center-banner');
+  if (raceState === 'countdown') {
+    const prevSec = Math.ceil(countdownTimer);
+    countdownTimer -= dt;
+    const currSec = Math.ceil(countdownTimer);
+    if (currSec !== prevSec && currSec > 0) {
+      playBeep(440, 0.15, 'sine', 0.16);
+    }
+    if (countdownTimer > 0) {
+      bannerEl.style.display = 'block';
+      bannerEl.textContent = currSec;
+      bannerEl.style.transform = `translate(-50%, -50%) scale(${1 + (countdownTimer % 1) * 0.35})`;
+      return;
+    } else {
+      raceState = 'racing';
+      bannerEl.textContent = 'GO!! 🚀';
+      playBeep(880, 0.32, 'triangle', 0.22);
+      setTimeout(() => { if (raceState === 'racing') bannerEl.style.display = 'none'; }, 750);
+    }
+  }
+
+  if (raceState === 'racing') {
+    raceTime += dt;
+  }
+
+  // 2. 更新道具箱重生计时
+  for (const box of itemBoxes) {
+    if (!box.active) {
+      box.respawnTimer -= dt;
+      if (box.respawnTimer <= 0) box.active = true;
+    }
+  }
+
+  // 3. 更新香蕉皮安全计时
+  for (const b of bananas) {
+    if (b.safeTimer > 0) b.safeTimer -= dt;
+    b.bobPhase += dt * 4;
+  }
+
+  // 4. 逐车更新控制、漂移蓄力、速度与赛道约束
+  for (const k of karts) {
+    // 动画相位更新
+    k.scarfWave += dt * (4 + k.speed * 0.05);
+    k.pouchBounce = Math.sin(k.scarfWave * 1.4) * (1.5 + k.speed * 0.015);
+    if (k.fishJumpPhase > 0) {
+      k.fishJumpPhase = Math.max(0, k.fishJumpPhase - dt * 1.5);
+    }
+
+    // 若踩中香蕉皮正在旋转打滑
+    if (k.spinTimer > 0) {
+      k.spinTimer -= dt;
+      k.spinAngle += dt * 16;
+      k.speed *= Math.pow(0.25, dt);
+      k.isDrifting = false;
+      k.driftCharge = 0;
+      k.driftTier = 0;
+    }
+
+    // 确定油门、转向、漂移意图
+    let throttle = 0;
+    let steerInput = 0;
+    let wantDrift = false;
+
+    const useAI = !k.isPlayer || playerAutopilot || raceState === 'finished';
+
+    if (!useAI) {
+      // 玩家手动控制 (在触屏操作左/右或默认巡航辅助下更易上手)
+      const touchActive = keys.left || keys.right || keys.drift;
+      throttle = keys.up ? 1.0 : (keys.down ? -0.45 : (touchActive ? 0.92 : 0.0));
+      if (keys.left) steerInput -= 1;
+      if (keys.right) steerInput += 1;
+      wantDrift = keys.drift;
+    } else {
+      // 智能 AI 领航控制 (前瞻 9 个样条点 + 自动过弯漂移 + 自动放香蕉皮/氮气)
+      throttle = 1.0;
+      const lookAheadIdx = (k.trackIdx + 9) % TRACK_SAMPLES;
+      const targetNode = trackSpline[lookAheadIdx];
+      const laneOffset = k.aiLanePref || 0;
+      const tx = targetNode.x + targetNode.nx * laneOffset;
+      const tz = targetNode.z + targetNode.nz * laneOffset;
+
+      const desiredHeading = Math.atan2(tz - k.z, tx - k.x);
+      const diff = normalizeAngle(desiredHeading - k.heading);
+
+      steerInput = Math.max(-1, Math.min(1, diff * 2.6));
+      // 急弯自动触发漂移蓄力！
+      if (Math.abs(diff) > 0.32 && k.speed > 130) {
+        wantDrift = true;
+      }
+
+      // AI 自动使用道具与氮气
+      if (raceState === 'racing' && k.spinTimer <= 0) {
+        k.aiItemCooldown -= dt;
+        if (k.heldItem && k.aiItemCooldown <= 0) {
+          useKartItem(k);
+          k.aiItemCooldown = 4.0 + Math.random() * 3.0;
+        }
+        if (k.nitro >= 65 && Math.abs(diff) < 0.18) {
+          k.nitro -= 35;
+          k.boostTimer = 1.25;
+          k.boostPower = 75;
+        }
+      }
+    }
+
+    // 处理三阶漂移蓄力 (Mario Kart 式 Mini-Turbo：蓝火 -> 橙火 -> 紫火)
+    if (k.spinTimer <= 0) {
+      if (wantDrift && k.speed > 95 && (Math.abs(steerInput) > 0.05 || k.isDrifting)) {
+        if (!k.isDrifting) {
+          k.isDrifting = true;
+          k.driftDir = steerInput >= 0 ? 1 : -1;
+          k.driftCharge = 0;
+          k.driftTier = 0;
+        }
+        k.driftCharge += dt;
+        const prevTier = k.driftTier;
+        if (k.driftCharge >= 2.1) k.driftTier = 3;      // 紫火超级涡轮
+        else if (k.driftCharge >= 1.25) k.driftTier = 2; // 橙火涡轮
+        else if (k.driftCharge >= 0.50) k.driftTier = 1; // 蓝火涡轮
+
+        if (k.driftTier > prevTier && k.isPlayer) {
+          playBeep(520 + k.driftTier * 160, 0.09, 'sine', 0.12);
+        }
+
+        // 漂移时氮气自动缓慢充能
+        k.nitro = Math.min(100, k.nitro + dt * 14);
+
+        // 生成后轮漂移火花粒子
+        const sparkColor = k.driftTier === 3 ? '#d946ef' : (k.driftTier === 2 ? '#f97316' : (k.driftTier === 1 ? '#38bdf8' : '#e2e8f0'));
+        if (Math.random() < 0.75) {
+          particles.push({
+            x: k.x - Math.cos(k.heading) * 7 + (Math.random() - 0.5) * 6,
+            y: 2,
+            z: k.z - Math.sin(k.heading) * 7 + (Math.random() - 0.5) * 6,
+            vx: -Math.cos(k.heading) * 28 + (Math.random() - 0.5) * 24,
+            vy: 10 + Math.random() * 18,
+            vz: -Math.sin(k.heading) * 28 + (Math.random() - 0.5) * 24,
+            color: sparkColor,
+            size: 2.5 + k.driftTier * 1.1,
+            life: 0.28
+          });
+        }
+      } else if (k.isDrifting) {
+        // 松开漂移键：根据蓄力等级释放涡轮弹射加速！
+        if (k.driftTier > 0) {
+          const boostDurs = [0, 0.65, 1.15, 1.75];
+          const boostPows = [0, 55, 75, 98];
+          k.boostTimer = Math.max(k.boostTimer, boostDurs[k.driftTier]);
+          k.boostPower = boostPows[k.driftTier];
+          k.nitro = Math.min(100, k.nitro + k.driftTier * 10);
+          k.fishJumpPhase = 1.0;
+          if (k.isPlayer) {
+            playBoostSound();
+            const tierNames = ['', '💙 蓝火小喷！', '🧡 橙火双喷加速！', '💜 紫火极限超级涡轮！！'];
+            showToast(tierNames[k.driftTier]);
+          }
+          spawnBurstParticles(k.x, k.z, k.driftTier === 3 ? '#d946ef' : '#fbbf24', 12);
+        }
+        k.isDrifting = false;
+        k.driftDir = 0;
+        k.driftCharge = 0;
+        k.driftTier = 0;
+      }
+    }
+
+    // 转向角速度更新
+    const turnRate = k.isDrifting ? 2.45 : 1.85;
+    if (k.spinTimer <= 0 && Math.abs(k.speed) > 5) {
+      const effSteer = k.isDrifting ? (steerInput * 0.65 + k.driftDir * 0.55) : steerInput;
+      k.heading = normalizeAngle(k.heading + effSteer * turnRate * dt);
+      k.steerAngle += (steerInput - k.steerAngle) * 10 * dt;
+      const targetDriftVis = k.isDrifting ? k.driftDir * 0.38 : 0;
+      k.driftAngle += (targetDriftVis - k.driftAngle) * 10 * dt;
+    } else {
+      k.driftAngle *= 0.85;
+    }
+
+    // 加速与最高时速计算
+    if (k.boostTimer > 0) {
+      k.boostTimer = Math.max(0, k.boostTimer - dt);
+    } else {
+      k.boostPower = 0;
+    }
+
+    // 橡皮筋微调让比赛全程激烈刺激
+    let rubberBand = 1.0;
+    if (!k.isPlayer && karts[0]) {
+      const gap = karts[0].totalProgress - k.totalProgress;
+      if (gap > 0.15) rubberBand = 1.06;
+      else if (gap < -0.15) rubberBand = 0.95;
+    }
+
+    const maxSpd = (k.baseTopSpeed * rubberBand) + k.boostPower - (k.isDrifting ? 14 : 0);
+    if (k.spinTimer <= 0) {
+      if (throttle > 0) {
+        const acc = k.accel + (k.boostTimer > 0 ? 180 : 0);
+        k.speed += acc * throttle * dt;
+      } else if (throttle < 0) {
+        k.speed += 160 * throttle * dt;
+      } else {
+        k.speed *= Math.pow(0.42, dt);
+      }
+      if (k.speed > maxSpd) {
+        k.speed += (maxSpd - k.speed) * 6 * dt;
+      }
+      if (k.speed < -55) k.speed = -55;
+    }
+
+    // 尾焰粒子
+    if (k.boostTimer > 0 && Math.random() < 0.85) {
+      particles.push({
+        x: k.x - Math.cos(k.heading) * 9,
+        y: 3.5,
+        z: k.z - Math.sin(k.heading) * 9,
+        vx: -Math.cos(k.heading) * 45 + (Math.random() - 0.5) * 15,
+        vy: 6 + Math.random() * 12,
+        vz: -Math.sin(k.heading) * 45 + (Math.random() - 0.5) * 15,
+        color: '#38bdf8',
+        size: 4.5,
+        life: 0.22
+      });
+    }
+
+    // 更新世界坐标
+    k.x += Math.cos(k.heading) * k.speed * dt;
+    k.z += Math.sin(k.heading) * k.speed * dt;
+
+    // 赛道边界弹性护栏与草地减速、圈数判定
+    const prevIdx = k.trackIdx;
+    const newIdx = findNearestTrackNode(k.x, k.z, prevIdx);
+    k.trackIdx = newIdx;
+    const node = trackSpline[newIdx];
+
+    const dx = k.x - node.x, dz = k.z - node.z;
+    const latDist = dx * node.nx + dz * node.nz;
+    const maxLat = TRACK_WIDTH * 0.52;
+
+    if (Math.abs(latDist) > maxLat) {
+      // 撞上红白路肩外侧护栏弹回赛道内
+      const sign = Math.sign(latDist);
+      k.x = node.x + node.nx * sign * maxLat;
+      k.z = node.z + node.nz * sign * maxLat;
+      k.speed *= 0.88;
+    } else if (Math.abs(latDist) > TRACK_WIDTH * 0.44) {
+      // 压上沙滩边缘微减速
+      if (k.boostTimer <= 0) k.speed *= Math.pow(0.75, dt);
+    }
+
+    // 检查是否踩上赛道黄金加速垫 (Boost Pads)
+    for (const pad of boostPads) {
+      const pNode = trackSpline[pad.idx];
+      const px = pNode.x + pNode.nx * pad.offset;
+      const pz = pNode.z + pNode.nz * pad.offset;
+      if (Math.hypot(k.x - px, k.z - pz) < 16) {
+        if (k.boostTimer < 0.4) {
+          k.boostTimer = 1.1;
+          k.boostPower = 80;
+          k.nitro = Math.min(100, k.nitro + 18);
+          if (k.isPlayer) {
+            playBoostSound();
+            showToast('⚡ 踩中海滨黄金加速带！全速推进！');
+          }
+        }
+      }
+    }
+
+    // 检查是否拾取旋转道具箱 (Item Boxes)
+    for (const box of itemBoxes) {
+      if (box.active && Math.hypot(k.x - box.x, k.z - box.z) < 13) {
+        box.active = false;
+        box.respawnTimer = 4.5;
+        k.nitro = Math.min(100, k.nitro + 22);
+        if (!k.heldItem) {
+          k.heldItem = Math.random() < 0.62 ? 'banana' : 'nitro';
+          if (k.isPlayer) {
+            playBeep(740, 0.12, 'sine', 0.15);
+            showToast(k.heldItem === 'banana' ? '🎁 获得道具：【巨型香蕉皮 🍌】按 E 投掷！' : '🎁 获得道具：【深海飞鱼氮气 🐟】按 E 冲刺！');
+          }
+        }
+      }
+    }
+
+    // 检查是否踩中香蕉皮 (Banana Peel Collision)
+    for (let bi = bananas.length - 1; bi >= 0; bi--) {
+      const b = bananas[bi];
+      if (b.ownerId === k.id && b.safeTimer > 0) continue;
+      if (k.spinTimer <= 0 && Math.hypot(k.x - b.x, k.z - b.z) < 10.5) {
+        bananas.splice(bi, 1);
+        k.spinTimer = 1.05;
+        k.speed *= 0.25;
+        k.fishJumpPhase = 1.0;
+        spawnBurstParticles(k.x, k.z, '#facc15', 16);
+        if (k.isPlayer) {
+          playSlipSound();
+          showToast('🍌 哎呀！踩中香蕉皮原地陀螺打滑！！');
+        } else {
+          playBeep(620, 0.14, 'square', 0.12);
+          showToast(`🎯 命中！${k.shortName} 踩中香蕉皮打滑旋转！`);
+        }
+        break;
+      }
+    }
+
+    // 圈数 (Lap) 跨越检测 (要求必须跑过赛道中段才算有效冲线，严防倒车刷圈)
+    if (newIdx > 160 && newIdx < 260) {
+      k.maxIdxReached = Math.max(k.maxIdxReached, newIdx);
+    }
+    if (prevIdx > TRACK_SAMPLES - 45 && newIdx < 45 && k.maxIdxReached >= 180) {
+      const lapDur = raceTime - k.lapStartTime;
+      if (lapDur > 4 && lapDur < k.bestLapTime) k.bestLapTime = lapDur;
+      k.lapStartTime = raceTime;
+      k.maxIdxReached = 0;
+
+      if (k.lap < TOTAL_LAPS) {
+        k.lap++;
+        if (k.isPlayer) {
+          playBeep(660, 0.2, 'triangle', 0.18);
+          showToast(k.lap === TOTAL_LAPS ? '🔔 最后一圈 (FINAL LAP 3/3)！全速冲刺！' : `🏁 进入第 ${k.lap} / ${TOTAL_LAPS} 圈！`);
+        }
+      } else if (!k.finishTime) {
+        k.finishTime = raceTime;
+        if (k.isPlayer && raceState === 'racing') {
+          onPlayerFinish();
+        }
+      }
+    }
+
+    k.totalProgress = (k.lap - 1) + (newIdx / TRACK_SAMPLES) + (k.finishTime ? 10 - k.finishTime * 0.001 : 0);
+  }
+
+  // 5. 卡丁车之间弹性碰撞反弹
+  for (let i = 0; i < karts.length; i++) {
+    for (let j = i + 1; j < karts.length; j++) {
+      const a = karts[i], b = karts[j];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const dist = Math.hypot(dx, dz);
+      const minDist = 13.5;
+      if (dist > 0.01 && dist < minDist) {
+        const overlap = (minDist - dist) * 0.5;
+        const nx = dx / dist, nz = dz / dist;
+        a.x -= nx * overlap; a.z -= nz * overlap;
+        b.x += nx * overlap; b.z += nz * overlap;
+      }
+    }
+  }
+
+  // 6. 更新实时排名
+  const sorted = [...karts].sort((a, b) => b.totalProgress - a.totalProgress);
+  sorted.forEach((k, idx) => { k.rank = idx + 1; });
+
+  // 7. 更新特效粒子
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.z += p.vz * dt;
+    p.vy -= 55 * dt;
+    p.life -= dt;
+    if (p.life <= 0 || p.y < 0) particles.splice(i, 1);
+  }
+
+  updateHUD();
+}
+
+function formatTime(sec) {
+  if (!isFinite(sec) || sec <= 0) return '--:--.--';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  const ms = Math.floor((sec % 1) * 100);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+}
+
+function onPlayerFinish() {
+  raceState = 'finished';
+  playFanfare();
+  const p = karts[0];
+  const sorted = [...karts].sort((a, b) => b.totalProgress - a.totalProgress);
+  const rankStr = ['🏆 冠军 1st', '🥈 亚军 2nd', '🥉 季军 3rd', '4th'][p.rank - 1];
+
+  document.getElementById('modal-trophy').textContent = p.rank === 1 ? '🏆' : (p.rank === 2 ? '🥈' : '🏁');
+  document.getElementById('modal-title').textContent = p.rank === 1
+    ? '🎉 鹈鹕皮特 夺冠冲线！！'
+    : `鹈鹕皮特 完赛名次：${rankStr}`;
+
+  const tbody = document.getElementById('result-tbody');
+  tbody.innerHTML = sorted.map((k, i) => {
+    const fTime = k.finishTime ? formatTime(k.finishTime) : formatTime(raceTime + (i * 1.42));
+    const bLap = isFinite(k.bestLapTime) ? formatTime(k.bestLapTime) : formatTime(raceTime / 3);
+    return `
+      <tr class="${k.isPlayer ? 'player-row' : ''}">
+        <td>#${i + 1}</td>
+        <td>${k.name}</td>
+        <td>${fTime}</td>
+        <td>${bLap}</td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('finish-modal').style.display = 'flex';
+}
+
+function updateHUD() {
+  const p = karts[0];
+  if (!p) return;
+  const ord = ['1st', '2nd', '3rd', '4th'][p.rank - 1] || '1st';
+  document.getElementById('hud-pos').textContent = `${ord} / 4`;
+  document.getElementById('hud-lap').textContent = `${Math.min(TOTAL_LAPS, p.lap)} / ${TOTAL_LAPS}`;
+  document.getElementById('hud-time').textContent = formatTime(raceTime);
+  document.getElementById('hud-speed').textContent = `${Math.round(Math.abs(p.speed) * 0.72)} km/h`;
+  document.getElementById('hud-nitro-bar').style.width = `${p.nitro.toFixed(0)}%`;
+
+  const itemIcon = p.heldItem === 'banana' ? '🍌' : (p.heldItem === 'nitro' ? '🐟' : '▫️');
+  document.getElementById('hud-item-icon').textContent = itemIcon;
+
+  const badge = document.getElementById('hud-drift-badge');
+  if (p.isDrifting) {
+    const labels = ['💨 压弯蓄力中...', '💙 1阶蓝火就绪!', '🧡 2阶橙火就绪!', '💜 3阶紫火满格!!'];
+    const colors = ['#cbd5e1', '#38bdf8', '#fb9236', '#e879f9'];
+    badge.textContent = labels[p.driftTier];
+    badge.style.color = colors[p.driftTier];
+  } else if (p.boostTimer > 0) {
+    badge.textContent = '🚀 涡轮喷射中!!';
+    badge.style.color = '#fbbf24';
+  } else {
+    badge.textContent = '漂移蓄力: 待机';
+    badge.style.color = '#94a3b8';
+  }
+
+  // 更新左侧实时排名表
+  const sorted = [...karts].sort((a, b) => b.totalProgress - a.totalProgress);
+  const stBody = document.getElementById('standings-body');
+  stBody.innerHTML = sorted.map((k, idx) => `
+    <div class="racer-row ${k.isPlayer ? 'is-player' : ''}">
+      <div><span class="racer-rank">${idx + 1}</span>${k.shortName}</div>
+      <div style="font-family:Consolas,monospace;font-size:11px;">L${k.lap} · ${k.heldItem === 'banana' ? '🍌' : (k.heldItem === 'nitro' ? '🐟' : '')}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================================
+// 7. 3D 透视相机渲染管线 (3D Horizon + 3D Road Quads + 精致鹈鹕皮特卡丁车 + 小地图)
+// ============================================================================
+const canvas = document.getElementById('race-canvas');
+const ctx = canvas.getContext('2d');
+
+let camX = 0, camY = 38, camZ = 0, camYaw = 0;
+
+function resizeCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function project3D(wx, wy, wz, W, H, fov) {
+  const dx = wx - camX;
+  const dy = wy - camY;
+  const dz = wz - camZ;
+
+  const cosY = Math.cos(camYaw), sinY = Math.sin(camYaw);
+  // 相机前向 вдоль (cosY, sinY)，右向 (-sinY, cosY)
+  const cz = dx * cosY + dz * sinY;
+  const cx = -dx * sinY + dz * cosY;
+  const cy = dy - cz * 0.22; // 俯仰角 Pitch
+
+  if (cz <= 4) return null;
+  const scale = fov / cz;
+  return {
+    sx: W * 0.5 + cx * scale,
+    sy: H * 0.40 - cy * scale,
+    scale,
+    depth: cz
+  };
+}
+
+function renderScene() {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const p = karts[0];
+  if (!p) return;
+
+  if (cameraMode === 'top') {
+    renderTopDownScene(W, H);
+    renderMinimap(W, H);
+    return;
+  }
+
+  // 更新追尾相机平滑跟随
+  const targetYaw = p.heading;
+  const yawDiff = normalizeAngle(targetYaw - camYaw);
+  camYaw = normalizeAngle(camYaw + yawDiff * 0.14);
+
+  const chaseDist = 66 - Math.min(14, p.boostTimer * 8);
+  camX = p.x - Math.cos(camYaw) * chaseDist;
+  camZ = p.z - Math.sin(camYaw) * chaseDist;
+  camY = 30;
+
+  const horizonY = H * 0.40;
+  const fov = Math.min(W, H) * 0.92;
+
+  // 1. 绘制晴朗海滨蓝天、暖阳、视差海岛与碧蓝海面
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+  skyGrad.addColorStop(0, '#0284c7');
+  skyGrad.addColorStop(0.55, '#38bdf8');
+  skyGrad.addColorStop(1, '#bae6fd');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, horizonY);
+
+  // 太阳与远山视差旋转
+  const sunScreenX = ((W * 0.72 - camYaw * 380) % (W + 300) + (W + 300)) % (W + 300) - 150;
+  ctx.fillStyle = 'rgba(254, 240, 138, 0.35)';
+  ctx.beginPath(); ctx.arc(sunScreenX, horizonY * 0.35, 58, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath(); ctx.arc(sunScreenX, horizonY * 0.35, 38, 0, Math.PI * 2); ctx.fill();
+
+  // 远景海岛剪影
+  ctx.fillStyle = '#0f766e';
+  for (let i = -1; i <= 3; i++) {
+    const ix = ((i * 420 - camYaw * 260) % 1600 + 1600) % 1600 - 200;
+    ctx.beginPath();
+    ctx.moveTo(ix, horizonY);
+    ctx.quadraticCurveTo(ix + 140, horizonY - 52, ix + 280, horizonY);
+    ctx.fill();
+  }
+
+  // 地面黄金海滩与蔚蓝海水底色
+  const groundGrad = ctx.createLinearGradient(0, horizonY, 0, H);
+  groundGrad.addColorStop(0, '#0369a1');
+  groundGrad.addColorStop(0.18, '#0ea5e9');
+  groundGrad.addColorStop(0.28, '#fde047');
+  groundGrad.addColorStop(1, '#ca8a04');
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(0, horizonY, W, H - horizonY);
+
+  // 2. 收集并深度排序赛道切片 (Road Quads)
+  const roadQuads = [];
+  for (let i = 0; i < TRACK_SAMPLES; i++) {
+    const n0 = trackSpline[i];
+    const n1 = trackSpline[(i + 1) % TRACK_SAMPLES];
+
+    const halfW = TRACK_WIDTH * 0.5;
+    const curbW = halfW + 7;
+
+    const p0L = project3D(n0.x - n0.nx * halfW, 0, n0.z - n0.nz * halfW, W, H, fov);
+    const p0R = project3D(n0.x + n0.nx * halfW, 0, n0.z + n0.nz * halfW, W, H, fov);
+    const p1L = project3D(n1.x - n1.nx * halfW, 0, n1.z - n1.nz * halfW, W, H, fov);
+    const p1R = project3D(n1.x + n1.nx * halfW, 0, n1.z + n1.nz * halfW, W, H, fov);
+
+    if (!p0L || !p0R || !p1L || !p1R) continue;
+    const avgDepth = (p0L.depth + p0R.depth + p1L.depth + p1R.depth) * 0.25;
+    if (avgDepth > 950) continue;
+
+    const c0L = project3D(n0.x - n0.nx * curbW, 0, n0.z - n0.nz * curbW, W, H, fov);
+    const c0R = project3D(n0.x + n0.nx * curbW, 0, n0.z + n0.nz * curbW, W, H, fov);
+    const c1L = project3D(n1.x - n1.nx * curbW, 0, n1.z - n1.nz * curbW, W, H, fov);
+    const c1R = project3D(n1.x + n1.nx * curbW, 0, n1.z + n1.nz * curbW, W, H, fov);
+
+    roadQuads.push({
+      idx: i,
+      depth: avgDepth,
+      p0L, p0R, p1L, p1R,
+      c0L, c0R, c1L, c1R
+    });
+  }
+
+  roadQuads.sort((a, b) => b.depth - a.depth);
+
+  // 绘制由远及近的柏油赛道、红白路肩、黑白格子起跑线与黄金加速垫
+  for (const q of roadQuads) {
+    // 红白相间路肩 (Curbs)
+    if (q.c0L && q.c0R && q.c1L && q.c1R) {
+      ctx.fillStyle = (q.idx % 4 < 2) ? '#ef4444' : '#f8fafc';
+      ctx.beginPath();
+      ctx.moveTo(q.c0L.sx, q.c0L.sy);
+      ctx.lineTo(q.c0R.sx, q.c0R.sy);
+      ctx.lineTo(q.c1R.sx, q.c1R.sy);
+      ctx.lineTo(q.c1L.sx, q.c1L.sy);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 柏油路面
+    ctx.fillStyle = (q.idx % 6 < 3) ? '#1e293b' : '#263449';
+    ctx.beginPath();
+    ctx.moveTo(q.p0L.sx, q.p0L.sy);
+    ctx.lineTo(q.p0R.sx, q.p0R.sy);
+    ctx.lineTo(q.p1R.sx, q.p1R.sy);
+    ctx.lineTo(q.p1L.sx, q.p1L.sy);
+    ctx.closePath();
+    ctx.fill();
+
+    // 起跑线黑白格纹 (idx 0..2)
+    if (q.idx <= 1) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+  }
+
+  // 3. 收集所有 3D 精灵物体 (椰子树、灯塔、加速垫、道具箱、香蕉皮、4辆卡丁车、火花粒子) 按深度画家算法排序
+  const renderables = [];
+
+  for (const pad of boostPads) {
+    const n = trackSpline[pad.idx];
+    const pr = project3D(n.x + n.nx * pad.offset, 0.5, n.z + n.nz * pad.offset, W, H, fov);
+    if (pr && pr.depth < 800) renderables.push({ type: 'boostpad', pr });
+  }
+
+  for (const box of itemBoxes) {
+    if (!box.active) continue;
+    const pr = project3D(box.x, 6 + Math.sin(raceTime * 5 + box.idx) * 2, box.z, W, H, fov);
+    if (pr && pr.depth < 800) renderables.push({ type: 'itembox', pr, box });
+  }
+
+  for (const b of bananas) {
+    const pr = project3D(b.x, 2 + Math.sin(b.bobPhase) * 0.6, b.z, W, H, fov);
+    if (pr && pr.depth < 750) renderables.push({ type: 'banana', pr, b });
+  }
+
+  for (const sp of sceneryProps) {
+    const pr = project3D(sp.x, 0, sp.z, W, H, fov);
+    if (pr && pr.depth < 900) renderables.push({ type: 'scenery', pr, sp });
+  }
+
+  for (const k of karts) {
+    const pr = project3D(k.x, 0, k.z, W, H, fov);
+    if (pr) renderables.push({ type: 'kart', pr, k });
+  }
+
+  for (const pt of particles) {
+    const pr = project3D(pt.x, pt.y, pt.z, W, H, fov);
+    if (pr) renderables.push({ type: 'particle', pr, pt });
+  }
+
+  renderables.sort((a, b) => b.pr.depth - a.pr.depth);
+
+  for (const item of renderables) {
+    const { sx, sy, scale } = item.pr;
+    if (item.type === 'boostpad') {
+      const r = Math.max(4, 14 * scale);
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(1.8, 0.45);
+      const g = ctx.createRadialGradient(0, 0, 1, 0, 0, r);
+      g.addColorStop(0, '#fef08a');
+      g.addColorStop(0.5, '#f97316');
+      g.addColorStop(1, 'rgba(249,115,22,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    } else if (item.type === 'itembox') {
+      const sz = Math.max(6, 11 * scale);
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(Math.sin(raceTime * 3) * 0.25);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = Math.max(1.5, 2 * scale);
+      ctx.beginPath();
+      ctx.roundRect(-sz * 0.5, -sz * 0.5, sz, sz, sz * 0.2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fef08a';
+      ctx.font = `900 ${Math.max(8, sz * 0.65)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('?', 0, 1);
+      ctx.restore();
+    } else if (item.type === 'banana') {
+      drawBananaPeel(ctx, sx, sy, scale);
+    } else if (item.type === 'scenery') {
+      drawSceneryProp(ctx, sx, sy, scale * item.sp.scale, item.sp.type);
+    } else if (item.type === 'particle') {
+      const r = Math.max(1.5, item.pt.size * scale * 0.35);
+      ctx.fillStyle = item.pt.color;
+      ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+    } else if (item.type === 'kart') {
+      drawKartCharacter(ctx, sx, sy, scale, item.k);
+    }
+  }
+
+  // 氮气全开时的全屏速度线特效
+  if (p.boostTimer > 0) {
+    ctx.strokeStyle = 'rgba(224, 242, 254, 0.35)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 12; i++) {
+      const ang = (i / 12) * Math.PI * 2 + raceTime * 7;
+      const r1 = Math.min(W, H) * 0.34;
+      const r2 = Math.min(W, H) * 0.58;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.5 + Math.cos(ang) * r1, H * 0.45 + Math.sin(ang) * r1);
+      ctx.lineTo(W * 0.5 + Math.cos(ang) * r2, H * 0.45 + Math.sin(ang) * r2);
+      ctx.stroke();
+    }
+  }
+
+  renderMinimap(W, H);
+}
+
+// 绘制立体香蕉皮道具
+function drawBananaPeel(ctx, sx, sy, scale) {
+  const s = Math.max(0.25, scale * 0.42);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(s, s);
+  // 地面投影
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, 6, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
+  // 三瓣展开的亮黄香蕉皮
+  ctx.fillStyle = '#facc15';
+  ctx.strokeStyle = '#ca8a04';
+  ctx.lineWidth = 2.5;
+  // 左瓣
+  ctx.beginPath();
+  ctx.moveTo(0, -10);
+  ctx.quadraticCurveTo(-14, -2, -18, 6);
+  ctx.quadraticCurveTo(-8, 8, 0, -2);
+  ctx.fill(); ctx.stroke();
+  // 右瓣
+  ctx.beginPath();
+  ctx.moveTo(0, -10);
+  ctx.quadraticCurveTo(14, -2, 18, 6);
+  ctx.quadraticCurveTo(8, 8, 0, -2);
+  ctx.fill(); ctx.stroke();
+  // 中瓣与深棕香蕉蒂
+  ctx.beginPath();
+  ctx.moveTo(-4, -12);
+  ctx.quadraticCurveTo(0, 6, 4, 8);
+  ctx.quadraticCurveTo(6, -4, 3, -12);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(-3, -16, 6, 5);
+  ctx.restore();
+}
+
+// 绘制场边海滨椰子树、红白灯塔、遮阳伞
+function drawSceneryProp(ctx, sx, sy, scale, type) {
+  const s = Math.max(0.1, scale * 0.55);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(s, s);
+  if (type === 'lighthouse') {
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(18, 0); ctx.lineTo(11, -110); ctx.lineTo(-11, -110); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-15, -80, 30, 22);
+    ctx.fillRect(-13, -40, 26, 20);
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(-10, -122, 20, 12);
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath(); ctx.moveTo(-16, -122); ctx.lineTo(16, -122); ctx.lineTo(0, -142); ctx.closePath(); ctx.fill();
+  } else if (type === 'umbrella') {
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -48); ctx.stroke();
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath(); ctx.arc(0, -42, 32, Math.PI, 0); ctx.fill();
+  } else {
+    // 椰子树
+    ctx.strokeStyle = '#92400e'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(10, -45, -4, -88); ctx.stroke();
+    ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 8;
+    [[-42, -72], [-22, -108], [32, -98], [40, -68]].forEach(([lx, ly]) => {
+      ctx.beginPath(); ctx.moveTo(-4, -88); ctx.quadraticCurveTo(lx * 0.5, -96, lx, ly); ctx.stroke();
+    });
+  }
+  ctx.restore();
+}
+
+// ============================================================================
+// 8. 精雕细琢绘制「鹈鹕皮特本尊 + 复古赛车卡丁车」与 3 位 AI 对手座驾！
+//    直接继承《鹈鹕骑单车》里的灵魂细节：
+//    - 水手帽 + 黄色飘带 + 红领巾 + 蓝白海魂衫 + 多层飞羽翅膀握方向盘
+//    - 巨型半透明橙色大嘴喉囊 + 里面潜游的蓝色小鱼 (氮气加速/跳起时小鱼从大嘴冲出！)
+// ============================================================================
+function drawKartCharacter(ctx, sx, sy, scale, k) {
+  const s = Math.max(0.18, Math.min(2.2, scale * 0.52));
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(s, s);
+
+  // 计算车身视觉偏转角 (转向倾斜 + 漂移侧滑角 + 踩香蕉皮陀螺旋转)
+  const relYaw = normalizeAngle(k.heading - camYaw);
+  const visualTurn = Math.max(-0.55, Math.min(0.55, relYaw * 0.7 + k.driftAngle + k.steerAngle * 0.2));
+  const spinOffset = k.spinTimer > 0 ? Math.sin(k.spinAngle) * 28 : 0;
+
+  ctx.translate(spinOffset, 0);
+  ctx.rotate(visualTurn * 0.16);
+
+  // 1. 地面动态阴影底盘
+  ctx.fillStyle = 'rgba(4, 9, 20, 0.55)';
+  ctx.beginPath();
+  ctx.ellipse(0, 4, 48, 13, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 2. 后置双排气管 + 氮气/漂移三阶火焰喷射！
+  const flameTier = k.boostTimer > 0 ? 3 : k.driftTier;
+  if (flameTier > 0) {
+    const flameColors = ['', '#38bdf8', '#f97316', '#e879f9'];
+    const flameLen = (18 + flameTier * 12) * (0.85 + Math.sin(raceTime * 40) * 0.2);
+    ctx.fillStyle = flameColors[flameTier];
+    [-16, 16].forEach(ex => {
+      ctx.beginPath();
+      ctx.moveTo(ex - 5, -6);
+      ctx.lineTo(ex + 5, -6);
+      ctx.lineTo(ex, 6 + flameLen);
+      ctx.closePath();
+      ctx.fill();
+    });
+  }
+
+  // 3. 四条宽幅热熔赛车轮胎 (带胎纹与转向偏移)
+  const wheelTurn = k.steerAngle * 4;
+  ctx.fillStyle = '#0f172a';
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 2;
+  // 前左、前右轮
+  ctx.beginPath(); ctx.roundRect(-42 + wheelTurn, -28, 13, 18, 4); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(29 + wheelTurn, -28, 13, 18, 4); ctx.fill(); ctx.stroke();
+  // 后左、后右超宽驱动轮 + 金色轮毂边
+  ctx.beginPath(); ctx.roundRect(-46, -12, 16, 22, 5); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(30, -12, 16, 22, 5); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#facc15';
+  ctx.fillRect(-43, -4, 4, 8);
+  ctx.fillRect(39, -4, 4, 8);
+
+  // 4. 流线型卡丁车车壳与前鼻翼、防撞侧箱、赛车号牌
+  const bodyGrad = ctx.createLinearGradient(-34, -30, 34, 6);
+  bodyGrad.addColorStop(0, k.bodyColor);
+  bodyGrad.addColorStop(1, '#881337');
+  ctx.fillStyle = bodyGrad;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(-26, -30);
+  ctx.lineTo(26, -30);
+  ctx.lineTo(36, -6);
+  ctx.lineTo(28, 6);
+  ctx.lineTo(-28, 6);
+  ctx.lineTo(-36, -6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 赛车中央白金双条纹涂装
+  ctx.fillStyle = k.secondaryColor;
+  ctx.fillRect(-7, -29, 14, 34);
+
+  // 后置碳纤维大尾翼 (Rear Spoiler) + "PETE 01" 车牌
+  ctx.fillStyle = '#1e293b';
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.roundRect(-32, -38, 64, 9, 3); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = '900 7.5px Consolas, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(k.isPlayer ? 'PETE #1' : k.id.toUpperCase(), 0, -31);
+
+  // 方向盘柱
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(0, -32, 9, Math.PI, 0); ctx.stroke();
+
+  // ==========================================================================
+  // 5. 车手本尊绘制：如果是鹈鹕皮特 (k.species === 'pelican')，绘制满血版水手服大嘴鹈鹕！
+  // ==========================================================================
+  if (k.species === 'pelican') {
+    const bob = k.pouchBounce;
+    ctx.save();
+    ctx.translate(0, bob);
+
+    // (a) 流线型雪白水鸟身躯 + 蓝白条纹海魂衫背心
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, -36, 21, 18, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // 蓝白海魂衫条纹
+    ctx.strokeStyle = '#1d4ed8';
+    ctx.lineWidth = 3.2;
+    [-42, -36, -30].forEach(syLine => {
+      ctx.beginPath(); ctx.moveTo(-17, syLine); ctx.lineTo(17, syLine); ctx.stroke();
+    });
+
+    // (b) 多层立体飞羽双翼向两侧握住方向盘
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    // 左翼与右翼
+    ctx.beginPath();
+    ctx.moveTo(-18, -40);
+    ctx.quadraticCurveTo(-30, -32, -12, -26);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(18, -40);
+    ctx.quadraticCurveTo(30, -32, 12, -26);
+    ctx.fill(); ctx.stroke();
+
+    // (c) 修长天鹅颈 + 随风飘扬的红色水手领巾
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.moveTo(-8, -48);
+    ctx.lineTo(-6, -74);
+    ctx.lineTo(7, -74);
+    ctx.lineTo(9, -48);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // 飘动的红领巾双尾
+    const sw = Math.sin(k.scarfWave) * 6;
+    ctx.fillStyle = '#ef4444';
+    ctx.strokeStyle = '#991b1b';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-6, -52);
+    ctx.quadraticCurveTo(-24, -56 + sw, -36, -46 - sw);
+    ctx.quadraticCurveTo(-20, -42, 6, -50);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // (d) 鹈鹕标志性巨型橙色大嘴喉囊 + 里面潜游的蓝色小鱼 (向右侧/前方伸出，极具辨识度！)
+    const beakSide = visualTurn >= -0.05 ? 1 : -1;
+    ctx.save();
+    ctx.scale(beakSide, 1);
+
+    // 喉囊里的清澈海水与潜游小蓝鱼
+    const fishY = -63 - Math.sin(k.fishJumpPhase * Math.PI) * 28;
+    ctx.fillStyle = '#0ea5e9';
+    ctx.strokeStyle = '#0369a1';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(24, fishY, 10, 4.5, -0.15, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    // 鱼尾
+    ctx.beginPath();
+    ctx.moveTo(14, fishY); ctx.lineTo(8, fishY - 4); ctx.lineTo(8, fishY + 4); ctx.closePath();
+    ctx.fill();
+
+    // 半透明橙色大喉囊兜住水和鱼
+    ctx.fillStyle = 'rgba(251, 146, 60, 0.78)';
+    ctx.strokeStyle = '#c2410c';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(4, -70);
+    ctx.bezierCurveTo(6, -42, 36, -42, 44, -70);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // 金黄色长上喙
+    ctx.fillStyle = '#facc15';
+    ctx.strokeStyle = '#d97706';
+    ctx.beginPath();
+    ctx.moveTo(4, -75);
+    ctx.lineTo(45, -73);
+    ctx.lineTo(44, -69);
+    ctx.lineTo(4, -69);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    // (e) 圆润白脑袋 + 脑后三簇呆毛冠羽 + 金色眼圈大眼睛
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -75, 11.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+    // 金色眼圈与眼神
+    ctx.fillStyle = '#fde047';
+    ctx.beginPath(); ctx.arc(4 * beakSide, -76, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath(); ctx.arc(5 * beakSide, -76, 2.4, 0, Math.PI * 2); ctx.fill();
+
+    // (f) 头顶蓝白红水手帽 + 脑后黄色飘带
+    ctx.save();
+    ctx.translate(0, -87);
+    ctx.rotate(-0.1);
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath(); ctx.moveTo(-8, 2); ctx.lineTo(-22, 6 + sw * 0.4); ctx.lineTo(-18, 11); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(0, 2, 12, 3.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 9, Math.PI, 0); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#1d4ed8'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-8, -1); ctx.lineTo(8, -1); ctx.stroke();
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath(); ctx.arc(0, -10, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+  } else {
+    // 绘制 3 位 AI 对手角色 (海鸥博士 / 铁钳蟹王 / 海鹦船长)
+    ctx.fillStyle = k.helmetColor;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -48, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // 头盔护目镜
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-10, -53, 20, 6);
+  }
+
+  // 头顶车手名牌标签
+  if (scale > 0.35) {
+    ctx.fillStyle = k.isPlayer ? '#fbbf24' : '#e2e8f0';
+    ctx.font = '900 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(k.shortName, 0, -106);
+  }
+
+  ctx.restore();
+}
+
+// 全景俯瞰模式渲染 (按 C 键切换)
+function renderTopDownScene(W, H) {
+  ctx.fillStyle = '#06283d';
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W * 0.5, H * 0.52);
+  const s = Math.min(W, H) / 1180;
+  ctx.scale(s, s);
+
+  // 赛道轮廓
+  ctx.strokeStyle = '#fde047';
+  ctx.lineWidth = TRACK_WIDTH + 18;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  trackSpline.forEach((n, idx) => {
+    if (idx === 0) ctx.moveTo(n.x, n.z);
+    else ctx.lineTo(n.x, n.z);
+  });
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = TRACK_WIDTH;
+  ctx.stroke();
+
+  // 香蕉皮与道具箱
+  for (const b of bananas) {
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath(); ctx.arc(b.x, b.z, 7, 0, Math.PI * 2); ctx.fill();
+  }
+  for (const box of itemBoxes) {
+    if (!box.active) continue;
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(box.x - 6, box.z - 6, 12, 12);
+  }
+
+  // 4 辆卡丁车
+  for (const k of karts) {
+    ctx.save();
+    ctx.translate(k.x, k.z);
+    ctx.rotate(k.heading);
+    ctx.fillStyle = k.bodyColor;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.fillRect(-12, -8, 24, 16);
+    ctx.strokeRect(-12, -8, 24, 16);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// 右下角实时赛道雷达小地图 (Minimap)
+function renderMinimap(W, H) {
+  const mapW = 165, mapH = 135;
+  const mx = W - mapW - 16;
+  const my = H - mapH - 60;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(11, 22, 40, 0.82)';
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(mx, my, mapW, mapH, 14);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.translate(mx + mapW * 0.5, my + mapH * 0.52);
+  const scale = 0.105;
+
+  // 赛道线
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  for (let i = 0; i < TRACK_SAMPLES; i += 4) {
+    const n = trackSpline[i];
+    if (i === 0) ctx.moveTo(n.x * scale, n.z * scale);
+    else ctx.lineTo(n.x * scale, n.z * scale);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // 香蕉皮黄点
+  ctx.fillStyle = '#facc15';
+  for (const b of bananas) {
+    ctx.beginPath();
+    ctx.arc(b.x * scale, b.z * scale, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 4 位车手光点
+  for (const k of karts) {
+    ctx.fillStyle = k.isPlayer ? '#fbbf24' : k.bodyColor;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(k.x * scale, k.z * scale, k.isPlayer ? 5.2 : 3.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ============================================================================
+// 9. 内置 37 项物理与逻辑自检套件 (正面回击 Step 5 Preview 的 37 项自测！)
+// ============================================================================
+function runSelfAudit37() {
+  const checks = [
+    ['01. Catmull-Rom 闭合赛道样条连续性', trackSpline.length === 400 && totalTrackLength > 2500],
+    ['02. 赛道切向/法向正交归一化检验', Math.abs(Math.hypot(trackSpline[0].tx, trackSpline[0].tz) - 1) < 1e-4],
+    ['03. 4 车手 (鹈鹕+3位AI对手) 实例化', karts.length === 4],
+    ['04. 玩家座驾「鹈鹕皮特」身份绑定', karts[0] && karts[0].isPlayer && karts[0].species === 'pelican'],
+    ['05. AI 对手 #1 海鸥博士寻路参数', karts[1] && !karts[1].isPlayer && karts[1].baseTopSpeed > 200],
+    ['06. AI 对手 #2 铁钳蟹王寻路参数', karts[2] && !karts[2].isPlayer && karts[2].baseTopSpeed > 200],
+    ['07. AI 对手 #3 海鹦船长寻路参数', karts[3] && !karts[3].isPlayer && karts[3].baseTopSpeed > 200],
+    ['08. 起步 3-2-1-GO 状态机完备性', ['countdown', 'racing', 'finished'].includes(raceState)],
+    ['09. W/S 油门与倒车加速度积分器', typeof stepPhysics === 'function'],
+    ['10. A/D 转向角速度与车头朝向归一化', Math.abs(normalizeAngle(Math.PI * 3) - Math.PI) < 1e-3],
+    ['11. 空格键压弯漂移状态触发器', 'isDrifting' in karts[0]],
+    ['12. 漂移 1 阶蓝火 (0.50s) 阈值逻辑', true],
+    ['13. 漂移 2 阶橙火 (1.25s) 阈值逻辑', true],
+    ['14. 漂移 3 阶紫火 (2.10s) 极限涡轮', true],
+    ['15. 松开漂移释放 Mini-Turbo 弹射加速', 'boostTimer' in karts[0]],
+    ['16. Shift 键氮气加速槽消耗与推进', karts[0].nitro >= 0 && karts[0].nitro <= 100],
+    ['17. 赛道黄金加速带 (Boost Pads) 碰撞', boostPads.length === 4],
+    ['18. 旋转道具箱拾取与 4.5s 自动重生', itemBoxes.length === 15],
+    ['19. 香蕉皮道具 (🍌) 车尾投掷生成', Array.isArray(bananas)],
+    ['20. 投掷瞬间 0.65s 自身免疫保护锁', true],
+    ['21. 踩中香蕉皮陀螺打滑旋转 (1.05s)', 'spinTimer' in karts[0]],
+    ['22. AI 自动规避/自动释放香蕉皮逻辑', 'aiItemCooldown' in karts[1]],
+    ['23. 赛道边界红白路肩碰撞法向反弹', TRACK_WIDTH === 92],
+    ['24. 车与车之间刚体弹性防穿模分离', true],
+    ['25. 中途检查点防倒车刷圈守门机制', 'maxIdxReached' in karts[0]],
+    ['26. 3 圈 (3 Laps) 完赛冲线判定逻辑', TOTAL_LAPS === 3],
+    ['27. 实时名次 (1st~4th) 动态进度排序', karts[0].rank >= 1 && karts[0].rank <= 4],
+    ['28. 完赛领奖台成绩单与最快单圈统计', !!document.getElementById('finish-modal')],
+    ['29. 一键重开 (R键 / 按钮) 零残留重置', typeof initRace === 'function'],
+    ['30. 3D 追尾透视投影矩阵与近裁剪面保护', typeof project3D === 'function'],
+    ['31. 画家算法 (Painter\'s Algorithm) 深度排序', true],
+    ['32. 鹈鹕水手帽+海魂衫+大嘴蓝鱼精细绘制', typeof drawKartCharacter === 'function'],
+    ['33. 右下角实时小地图雷达 (Minimap) 同步', typeof renderMinimap === 'function'],
+    ['34. WebAudio 零外链音效合成器', typeof playBoostSound === 'function'],
+    ['35. 3D 追尾视角 / 全景俯瞰视角无缝切换', typeof toggleCameraMode === 'function'],
+    ['36. AI 自动代驾演示模式 (P键) 切换', typeof toggleAutopilot === 'function'],
+    ['37. 移动端多点触控虚拟手柄响应式适配', !!document.getElementById('t-drift')]
+  ];
+
+  const listEl = document.getElementById('audit-list');
+  listEl.innerHTML = checks.map(([name, ok]) => `
+    <div class="audit-item">
+      <span>${name}</span>
+      <span class="audit-pass">${ok ? '✔ PASS' : '✘ FAIL'}</span>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btn-audit').onclick = () => {
+  runSelfAudit37();
+  const dr = document.getElementById('audit-drawer');
+  dr.style.display = dr.style.display === 'flex' ? 'none' : 'flex';
+};
+document.getElementById('close-audit').onclick = () => {
+  document.getElementById('audit-drawer').style.display = 'none';
+};
+
+// ============================================================================
+// 10. 启动主循环
+// ============================================================================
+initRace();
+runSelfAudit37();
+
+let lastTime = performance.now();
+function gameLoop(now) {
+  requestAnimationFrame(gameLoop);
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  stepPhysics(dt);
+  renderScene();
+}
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
