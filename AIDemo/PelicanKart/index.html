@@ -210,31 +210,43 @@
     color: var(--amber); font-family: Consolas, monospace; font-size: 11.5px; font-weight: 900;
   }
 
-  /* 手机/触屏虚拟按键区 */
+  /* 手机/电脑通用的大尺寸街机虚拟手柄区 (默认常驻显示！) */
   .touch-pad {
-    position: absolute; bottom: 18px; left: 16px; right: 16px;
-    display: none; justify-content: space-between; align-items: flex-end;
+    position: absolute; bottom: 16px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: flex-end;
     pointer-events: none; z-index: 30;
   }
-  .touch-group { display: flex; gap: 10px; pointer-events: auto; }
+  .touch-group { display: flex; gap: 10px; pointer-events: auto; align-items: flex-end; }
   .touch-btn {
-    width: 64px; height: 64px; border-radius: 18px;
-    background: rgba(15, 23, 42, 0.82);
-    border: 2px solid rgba(56, 189, 248, 0.5);
-    color: #fff; font-size: 22px; font-weight: 900;
+    width: 72px; height: 72px; border-radius: 20px;
+    background: rgba(15, 23, 42, 0.86);
+    border: 2.5px solid rgba(56, 189, 248, 0.65);
+    color: #fff; font-size: 24px; font-weight: 900;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
-    backdrop-filter: blur(6px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    touch-action: none;
+    transition: transform 0.08s;
   }
-  .touch-btn span { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .touch-btn span { font-size: 11px; color: #e2e8f0; margin-top: 2px; font-weight: 800; }
   .touch-btn:active, .touch-btn.pressed {
-    background: rgba(56, 189, 248, 0.35);
+    background: rgba(56, 189, 248, 0.42);
     border-color: var(--amber);
-    transform: scale(0.94);
+    transform: scale(0.92);
   }
-  .touch-btn.btn-drift { border-color: #a855f7; }
-  .touch-btn.btn-nitro { border-color: #f97316; }
-  .touch-btn.btn-banana { border-color: #facc15; }
+  .touch-btn.btn-drift {
+    border-color: #c084fc;
+    background: linear-gradient(180deg, rgba(88,28,135,0.85), rgba(30,27,75,0.9));
+  }
+  .touch-btn.btn-nitro {
+    border-color: #fb923c;
+    background: linear-gradient(180deg, rgba(154,52,18,0.85), rgba(67,20,7,0.9));
+  }
+  .touch-btn.btn-banana {
+    border-color: #facc15;
+    background: linear-gradient(180deg, rgba(133,77,14,0.85), rgba(66,32,6,0.9));
+  }
 
   /* 3圈完赛领奖台结算弹窗 */
   .modal-mask {
@@ -288,8 +300,8 @@
 
   /* 37项逻辑与渲染自检抽屉 */
   .audit-drawer {
-    position: fixed; right: 16px; bottom: 64px;
-    width: 350px; max-height: 70vh;
+    position: fixed; right: 16px; bottom: 96px;
+    width: 340px; max-height: 68vh;
     background: rgba(9, 18, 34, 0.95);
     border: 1px solid var(--emerald);
     border-radius: 16px; padding: 14px;
@@ -307,21 +319,31 @@
   .audit-list {
     overflow-y: auto; font-size: 11.5px; line-height: 1.6;
     font-family: Consolas, monospace; color: #cbd5e1;
-    max-height: 52vh; padding-right: 4px;
+    max-height: 50vh; padding-right: 4px;
   }
   .audit-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
   .audit-pass { color: var(--emerald); font-weight: 800; }
 
   @media (max-width: 900px) {
     .bottom-controls-hint { display: none; }
-    .touch-pad { display: flex; }
     .live-standings { display: none; }
-    .race-stat-bar { gap: 10px; padding: 6px 12px; }
-    .stat-val { font-size: 15px; }
-    .stat-val.pos-highlight { font-size: 18px; }
-    .hud-center-box { padding: 6px 10px; gap: 8px; }
-    .gauge-col { min-width: 105px; }
-    .item-slot { width: 42px; height: 42px; font-size: 22px; }
+    .hud-top { top: 8px; left: 8px; right: 8px; flex-wrap: wrap; gap: 6px; }
+    .back-btn { padding: 6px 10px; font-size: 11.5px; }
+    .race-stat-bar { gap: 8px; padding: 5px 10px; border-radius: 10px; }
+    .stat-lbl { font-size: 9px; }
+    .stat-val { font-size: 13px; }
+    .stat-val.pos-highlight { font-size: 15px; }
+    .hud-center-box { padding: 5px 8px; gap: 8px; border-radius: 12px; }
+    .gauge-col { min-width: 95px; }
+    .gauge-row { font-size: 10px; }
+    .item-slot { width: 38px; height: 38px; font-size: 20px; }
+    .top-action-btn { padding: 6px 9px; font-size: 11px; border-radius: 9px; }
+    .touch-pad { bottom: 14px; left: 10px; right: 10px; }
+    .touch-group { gap: 8px; }
+    .touch-btn { width: 62px; height: 64px; border-radius: 16px; font-size: 20px; }
+    .touch-btn span { font-size: 10px; }
+    #center-banner { font-size: 48px; }
+    #event-toast { font-size: 13px; padding: 5px 12px; top: 18%; white-space: nowrap; }
   }
 </style>
 </head>
@@ -331,23 +353,22 @@
   <!-- 顶部 HUD -->
   <div class="hud-top">
     <div class="hud-left-group">
-      <a class="back-btn" href="../index.html">◀ AIDemo 展厅</a>
-      <a class="back-btn" href="../PelicanCycling/index.html">🚲 骑单车版</a>
+      <a class="back-btn" href="../index.html">◀ 展厅</a>
       <div class="race-stat-bar">
         <div class="stat-box">
-          <span class="stat-lbl">名次 POS</span>
-          <span class="stat-val pos-highlight" id="hud-pos">1st / 4</span>
+          <span class="stat-lbl">名次</span>
+          <span class="stat-val pos-highlight" id="hud-pos">1st/4</span>
         </div>
         <div class="stat-box">
-          <span class="stat-lbl">圈数 LAP</span>
-          <span class="stat-val lap-highlight" id="hud-lap">1 / 3</span>
+          <span class="stat-lbl">圈数</span>
+          <span class="stat-val lap-highlight" id="hud-lap">1/3</span>
         </div>
         <div class="stat-box">
-          <span class="stat-lbl">计时 TIME</span>
-          <span class="stat-val" id="hud-time">00:00.00</span>
+          <span class="stat-lbl">计时</span>
+          <span class="stat-val" id="hud-time">00:00.0</span>
         </div>
         <div class="stat-box">
-          <span class="stat-lbl">时速 SPEED</span>
+          <span class="stat-lbl">时速</span>
           <span class="stat-val" id="hud-speed">0 km/h</span>
         </div>
       </div>
@@ -355,14 +376,14 @@
 
     <!-- 中央：道具箱 + 氮气与漂移火花槽 -->
     <div class="hud-center-box">
-      <div class="item-slot" id="item-slot-btn" title="点击或按 E / F 投掷道具！">
+      <div class="item-slot" id="item-slot-btn" title="点击投掷道具！">
         <span id="hud-item-icon">🍌</span>
-        <span class="item-slot-key">E/F</span>
+        <span class="item-slot-key">点我</span>
       </div>
       <div class="gauge-col">
         <div class="gauge-row">
-          <span>🔥 氮气加速 (Shift)</span>
-          <span class="drift-tier-badge" id="hud-drift-badge">漂移蓄力: 待机</span>
+          <span>🔥 氮气槽</span>
+          <span class="drift-tier-badge" id="hud-drift-badge">自动油门: 开</span>
         </div>
         <div class="nitro-bar-bg">
           <div class="nitro-bar-fill" id="hud-nitro-bar"></div>
@@ -372,10 +393,11 @@
 
     <!-- 右侧功能按钮 -->
     <div class="hud-right-group">
-      <button class="top-action-btn" id="btn-camera" title="切换 3D 追尾视角 / 全景俯瞰">🎥 3D 追尾视角 (C)</button>
-      <button class="top-action-btn" id="btn-autopilot" title="切换 AI 自动驾驶演示">🤖 AI 代驾: 关 (P)</button>
-      <button class="top-action-btn" id="btn-audit" title="查看 37 项物理与逻辑自检">✅ 自检 37/37</button>
-      <button class="top-action-btn restart-btn" id="btn-restart">🔄 一键重开 (R)</button>
+      <button class="top-action-btn active-cam" id="btn-autogas" title="手游模式默认自动踩满油门，只管左右转向和漂移！">⚡ 自动油门: 开</button>
+      <button class="top-action-btn" id="btn-camera" title="切换 3D 追尾视角 / 全景俯瞰">🎥 视角</button>
+      <button class="top-action-btn" id="btn-autopilot" title="切换 AI 自动驾驶演示">🤖 AI代驾</button>
+      <button class="top-action-btn" id="btn-audit" title="查看 37 项物理与逻辑自检">✅ 37项</button>
+      <button class="top-action-btn restart-btn" id="btn-restart">🔄 重开</button>
     </div>
   </div>
 
@@ -392,29 +414,25 @@
   <div id="center-banner">3</div>
   <div id="event-toast">🍌 投掷香蕉皮！后方海鸥博士打滑旋转！</div>
 
-  <!-- 主渲染 Canvas -->
+  <!-- 主渲染 Canvas (支持手指直接在画面上左右滑动转向！) -->
   <canvas id="race-canvas"></canvas>
 
   <!-- 桌面键盘操作提示 -->
   <div class="bottom-controls-hint">
-    <span><span class="kbd">W</span>/<span class="kbd">↑</span> 油门</span>
-    <span><span class="kbd">A</span><span class="kbd">D</span>/<span class="kbd">←</span><span class="kbd">→</span> 转向</span>
-    <span><span class="kbd">空格</span> 长按压弯漂移 (蓝火→橙火→紫火涡轮!)</span>
-    <span><span class="kbd">Shift</span> 氮气喷射</span>
-    <span><span class="kbd">E</span>/<span class="kbd">F</span> 扔香蕉皮🍌</span>
-    <span><span class="kbd">R</span> 一键重开</span>
+    <span>📱 手机直接按两侧大按钮或按住画面左右滑动即可飙车（已默认开启自动油门！）</span>
+    <span>💻 键盘：<span class="kbd">A</span><span class="kbd">D</span>转向 · <span class="kbd">空格</span>漂移 · <span class="kbd">Shift</span>氮气 · <span class="kbd">E</span>香蕉皮</span>
   </div>
 
-  <!-- 手机触屏手柄 -->
+  <!-- 手机/平板/电脑全兼容虚拟手柄 (左手方向 + 右手漂移/氮气/香蕉皮) -->
   <div class="touch-pad">
     <div class="touch-group">
-      <button class="touch-btn" id="t-left">◀<span>左转</span></button>
-      <button class="touch-btn" id="t-right">▶<span>右转</span></button>
+      <button class="touch-btn" id="t-left">◀<span>左打死</span></button>
+      <button class="touch-btn" id="t-right">▶<span>右打死</span></button>
     </div>
     <div class="touch-group">
-      <button class="touch-btn btn-banana" id="t-item">🍌<span>道具</span></button>
-      <button class="touch-btn btn-drift" id="t-drift">💨<span>漂移</span></button>
-      <button class="touch-btn btn-nitro" id="t-nitro">🔥<span>氮气</span></button>
+      <button class="touch-btn btn-banana" id="t-item">🍌<span>扔道具</span></button>
+      <button class="touch-btn btn-drift" id="t-drift">💨<span>长按漂移</span></button>
+      <button class="touch-btn btn-nitro" id="t-nitro">🔥<span>喷氮气</span></button>
     </div>
   </div>
 </div>
@@ -777,12 +795,16 @@ function initRace() {
 }
 
 // ============================================================================
-// 4. 键盘与触屏输入绑定 + 提示横幅
+// 4. 手机/电脑全兼容控制：默认开启「自动油门 (Auto-Gas)」+ 虚拟按键 + 画面滑动转向！
 // ============================================================================
 const keys = {
   up: false, down: false, left: false, right: false,
   drift: false, nitro: false
 };
+let autoGas = true;      // 手机端默认自动踩满油门！无需找油门键！
+let touchSteerVal = 0;   // 触屏滑动连续转向值 (-1..1)
+let isSwipingCanvas = false;
+let swipeStartX = 0;
 
 let toastTimeout = null;
 function showToast(msg) {
@@ -817,28 +839,74 @@ window.addEventListener('keyup', e => {
 function bindTouchBtn(id, onDown, onUp) {
   const btn = document.getElementById(id);
   if (!btn) return;
-  const start = e => { e.preventDefault(); btn.classList.add('pressed'); onDown(); };
-  const end = e => { e.preventDefault(); btn.classList.remove('pressed'); if (onUp) onUp(); };
+  const start = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    ensureAudio();
+    btn.classList.add('pressed');
+    onDown();
+  };
+  const end = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    btn.classList.remove('pressed');
+    if (onUp) onUp();
+  };
   btn.addEventListener('touchstart', start, { passive: false });
   btn.addEventListener('touchend', end, { passive: false });
+  btn.addEventListener('touchcancel', end, { passive: false });
   btn.addEventListener('mousedown', start);
   btn.addEventListener('mouseup', end);
+  btn.addEventListener('mouseleave', end);
 }
 
 bindTouchBtn('t-left',  () => keys.left = true,  () => keys.left = false);
 bindTouchBtn('t-right', () => keys.right = true, () => keys.right = false);
-bindTouchBtn('t-drift', () => { keys.up = true; keys.drift = true; }, () => keys.drift = false);
-bindTouchBtn('t-nitro', () => { keys.up = true; triggerPlayerNitro(); });
+bindTouchBtn('t-drift', () => keys.drift = true, () => keys.drift = false);
+bindTouchBtn('t-nitro', () => triggerPlayerNitro());
 bindTouchBtn('t-item',  () => useKartItem(karts[0]));
+
+// 支持手机直接在 3D 赛道画面上左右按住/滑动转向！
+const raceCanvasEl = document.getElementById('race-canvas');
+raceCanvasEl.addEventListener('touchstart', e => {
+  if (!e.touches.length) return;
+  ensureAudio();
+  isSwipingCanvas = true;
+  swipeStartX = e.touches[0].clientX;
+  const rel = (swipeStartX - window.innerWidth * 0.5) / (window.innerWidth * 0.35);
+  touchSteerVal = Math.max(-1, Math.min(1, rel));
+}, { passive: true });
+
+raceCanvasEl.addEventListener('touchmove', e => {
+  if (!isSwipingCanvas || !e.touches.length) return;
+  const currX = e.touches[0].clientX;
+  const delta = (currX - swipeStartX) / 95;
+  const posRel = (currX - window.innerWidth * 0.5) / (window.innerWidth * 0.35);
+  touchSteerVal = Math.max(-1, Math.min(1, Math.abs(delta) > 0.15 ? delta : posRel));
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+  isSwipingCanvas = false;
+  touchSteerVal = 0;
+});
 
 document.getElementById('item-slot-btn').onclick = () => useKartItem(karts[0]);
 document.getElementById('btn-restart').onclick = () => { initRace(); showToast('🔄 比赛已重新开始！'); };
 document.getElementById('modal-restart-btn').onclick = () => initRace();
 
+function toggleAutoGas() {
+  autoGas = !autoGas;
+  const btn = document.getElementById('btn-autogas');
+  btn.textContent = autoGas ? '⚡ 自动油门: 开' : '⚡ 自动油门: 关';
+  btn.classList.toggle('active-cam', autoGas);
+  showToast(autoGas ? '⚡ 自动油门已开启！只管左右转向和漂移即可！' : '🦶 已切为手动油门 (需按 W/↑ 加速)');
+}
+document.getElementById('btn-autogas').onclick = toggleAutoGas;
+
 function toggleCameraMode() {
   cameraMode = (cameraMode === 'chase') ? 'top' : 'chase';
   const btn = document.getElementById('btn-camera');
-  btn.textContent = cameraMode === 'chase' ? '🎥 3D 追尾视角 (C)' : '🗺️ 全景俯瞰视角 (C)';
+  btn.textContent = cameraMode === 'chase' ? '🎥 视角' : '🗺️ 俯瞰';
   btn.classList.toggle('active-cam', cameraMode === 'top');
 }
 document.getElementById('btn-camera').onclick = toggleCameraMode;
@@ -846,7 +914,7 @@ document.getElementById('btn-camera').onclick = toggleCameraMode;
 function toggleAutopilot() {
   playerAutopilot = !playerAutopilot;
   const btn = document.getElementById('btn-autopilot');
-  btn.textContent = playerAutopilot ? '🤖 AI 代驾: 开 (P)' : '🤖 AI 代驾: 关 (P)';
+  btn.textContent = playerAutopilot ? '🤖 代驾:开' : '🤖 AI代驾';
   btn.classList.toggle('active-cam', playerAutopilot);
   showToast(playerAutopilot ? '🤖 鹈鹕皮特开启 AI 自动漂移领航！' : '🎮 已切回手动驾驶模式！');
 }
@@ -867,7 +935,7 @@ function triggerPlayerNitro() {
     showToast('🔥 氮气全开！鹈鹕涡轮冲刺！');
     spawnBurstParticles(p.x, p.z, '#38bdf8', 14);
   } else {
-    showToast('⚡ 氮气不足！按住 [空格] 压弯漂移或撞击道具箱补充氮气！');
+    showToast('⚡ 氮气不足！长按【💨漂移】压弯蓄力或撞道具箱补氮气！');
   }
 }
 
@@ -995,11 +1063,24 @@ function stepPhysics(dt) {
     const useAI = !k.isPlayer || playerAutopilot || raceState === 'finished';
 
     if (!useAI) {
-      // 玩家手动控制 (在触屏操作左/右或默认巡航辅助下更易上手)
-      const touchActive = keys.left || keys.right || keys.drift;
-      throttle = keys.up ? 1.0 : (keys.down ? -0.45 : (touchActive ? 0.92 : 0.0));
+      // 手机友好的玩家控制：默认自动满油门 (autoGas = true)！
+      throttle = keys.down ? -0.45 : ((keys.up || autoGas || keys.left || keys.right || keys.drift || isSwipingCanvas) ? 1.0 : 0.0);
       if (keys.left) steerInput -= 1;
       if (keys.right) steerInput += 1;
+      if (steerInput === 0 && Math.abs(touchSteerVal) > 0.05) {
+        steerInput = touchSteerVal;
+      }
+      // 手机端贴心弯道辅助：当玩家没有按左/右也没有按漂移时，提供轻柔的顺赛道中心线微调，防止手机没按住时一头撞墙；当玩家按住漂移而没按方向时，自动顺着下一个弯道方向切弯漂移！
+      const lookNode = trackSpline[(k.trackIdx + 8) % TRACK_SAMPLES];
+      const desiredH = Math.atan2(lookNode.z - k.z, lookNode.x - k.x);
+      const curveDiff = normalizeAngle(desiredH - k.heading);
+      if (steerInput === 0) {
+        if (keys.drift) {
+          steerInput = Math.sign(curveDiff) || 1;
+        } else {
+          steerInput = Math.max(-0.55, Math.min(0.55, curveDiff * 1.15));
+        }
+      }
       wantDrift = keys.drift;
     } else {
       // 智能 AI 领航控制 (前瞻 9 个样条点 + 自动过弯漂移 + 自动放香蕉皮/氮气)
@@ -1995,14 +2076,16 @@ function renderTopDownScene(W, H) {
   ctx.restore();
 }
 
-// 右下角实时赛道雷达小地图 (Minimap)
+// 右侧实时赛道雷达小地图 (Minimap - 自动避开底部触屏大按钮！)
 function renderMinimap(W, H) {
-  const mapW = 165, mapH = 135;
-  const mx = W - mapW - 16;
-  const my = H - mapH - 60;
+  const isSmall = W < 900;
+  const mapW = isSmall ? 124 : 165;
+  const mapH = isSmall ? 102 : 135;
+  const mx = W - mapW - 12;
+  const my = isSmall ? (H - mapH - 94) : (H - mapH - 102);
 
   ctx.save();
-  ctx.fillStyle = 'rgba(11, 22, 40, 0.82)';
+  ctx.fillStyle = 'rgba(11, 22, 40, 0.78)';
   ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -2011,7 +2094,7 @@ function renderMinimap(W, H) {
   ctx.stroke();
 
   ctx.translate(mx + mapW * 0.5, my + mapH * 0.52);
-  const scale = 0.105;
+  const scale = isSmall ? 0.078 : 0.105;
 
   // 赛道线
   ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
