@@ -244,10 +244,10 @@
         <stop offset="0%" stop-color="#0284c7"/>
         <stop offset="100%" stop-color="#0369a1"/>
       </linearGradient>
-      <!-- 鹈鹕大嘴半透明橙色渐变 -->
+      <!-- 鹈鹕大嘴半透明橙色渐变 (透出袋内海水与潜游的蓝鱼) -->
       <linearGradient id="pouchGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#fb923c" stop-opacity="0.88"/>
-        <stop offset="100%" stop-color="#ea580c" stop-opacity="0.94"/>
+        <stop offset="0%" stop-color="#fb923c" stop-opacity="0.58"/>
+        <stop offset="100%" stop-color="#ea580c" stop-opacity="0.72"/>
       </linearGradient>
       <!-- 上喙金黄渐变 -->
       <linearGradient id="beakTopGrad" x1="0" y1="0" x2="1" y2="0">
@@ -536,13 +536,20 @@
 
         <!-- ==================================================================
              三明治大嘴结构 (点击可让里面的蓝鱼垂直跃出嘴袋!)
-             第 1 层 (里层)：深棕口腔内壁 + 金黄色长上喙
-             第 2 层 (夹心层)：活蹦乱跳的蓝鱼 (平时半露在上下嘴唇缝隙间，跃起时往上冲出！)
-             第 3 层 (外层)：巨型橙色下颌喉囊前壁 (自然遮挡住鱼的下半身，严丝合缝像装在兜里!)
+             第 1 层 (里层)：深棕口腔内壁 + 喉囊底部蓝色水池 + 金黄色长上喙
+             第 2 层 (夹心层)：浸在喉囊水里的蓝鱼 (平时潜游在嘴兜水下 y=154，跃起时往上冲出水面！)
+             第 3 层 (外层)：巨型半透明橙色下颌喉囊前壁 (自然包裹住水和鱼，严丝合缝!)
              ================================================================== -->
         <g id="pelican-pouch-group" class="interactive-hotspot">
-          <!-- [第 1 层] 口腔深色内衬 (让上下喙之间有立体纵深感) -->
+          <!-- [第 1 层] 口腔深色内衬 + 喉囊内壁后衬 -->
           <path id="mouth-interior" d="M 532,113 L 746,105 L 748,124 L 532,124 Z" fill="#7c2d12"/>
+          <path id="pouch-back-lining" d="M 532,120 C 532,238 698,242 748,120 Z" fill="#9a3412" opacity="0.55"/>
+
+          <!-- 喉囊里的清澈海水层 (受喉囊轮廓裁剪，水位在 y=132，小鱼潜游在水面以下!) -->
+          <g clip-path="url(#pouchClip)">
+            <path id="pouch-water-fill" d="M 526,133 Q 585,128 640,133 T 754,133 L 754,265 L 526,265 Z" fill="#0284c7" opacity="0.52"/>
+            <path id="pouch-water-wave" d="M 534,133 Q 585,128 640,133 T 746,133" fill="none" stroke="#7dd3fc" stroke-width="2.5" opacity="0.75"/>
+          </g>
 
           <!-- [第 1.5 层] 金黄色长上喙 (张嘴或鱼跃起时绕嘴根 (534,112) 向上抬起) -->
           <g id="upper-beak">
@@ -550,8 +557,8 @@
             <path d="M 744,95 C 756,95 760,109 748,117 C 744,111 742,103 744,95 Z" fill="#ef4444"/>
           </g>
 
-          <!-- [第 2 层 · 夹心层] 装在嘴兜里的蓝色小鱼 (平时露背脊在 y=120，跃起时鱼头朝上冲出!) -->
-          <g id="jumping-fish" transform="translate(632, 124) rotate(-8)">
+          <!-- [第 2 层 · 夹心层] 潜游在嘴兜水里的蓝色小鱼 (平时浸在水面下 y=156，跃起时冲破水面飞出!) -->
+          <g id="jumping-fish" transform="translate(632, 156) rotate(-4)">
             <!-- 鱼身、背鳍、尾鳍、呆萌鱼眼 -->
             <path d="M -22,-6 Q -6,-15 14,-8" fill="none" stroke="#0284c7" stroke-width="4" stroke-linecap="round"/>
             <ellipse cx="0" cy="0" rx="28" ry="12" fill="#0ea5e9" stroke="#0369a1" stroke-width="2.2"/>
@@ -559,20 +566,15 @@
             <polygon id="fish-tail-poly" points="-26,0 -42,-12 -37,0 -42,12" fill="#38bdf8" stroke="#0369a1" stroke-width="1.8"/>
             <circle cx="16" cy="-3" r="3.2" fill="#ffffff"/>
             <circle cx="17" cy="-3" r="1.6" fill="#0f172a"/>
-            <!-- 腮红與鱼鳃线 -->
+            <!-- 鱼鳃线与水下吐出的小气泡 -->
             <path d="M 6,-5 Q 2,0 6,5" fill="none" stroke="#0369a1" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="26" cy="-6" r="2.2" fill="#e0f2fe" opacity="0.85"/>
+            <circle cx="31" cy="-12" r="1.6" fill="#e0f2fe" opacity="0.7"/>
           </g>
 
-          <!-- [第 3 层 · 最外层口袋壁] 巨型橙色喉囊前兜 (盖在鱼下半身前面!) -->
+          <!-- [第 3 层 · 最外层半透明口袋壁] 巨型橙色喉囊前兜 (半透明罩在鱼和水前面!) -->
           <path id="pouch-main-shape" d="M 532,120 C 532,238 698,242 748,120 Z"
                 fill="url(#pouchGrad)" stroke="#c2410c" stroke-width="3.5" stroke-linejoin="round"/>
-          <!-- 喉囊内部隐约透出的鱼影 (增强半透明质感) -->
-          <g clip-path="url(#pouchClip)" opacity="0.28">
-            <g id="pouch-fish-inside" transform="translate(632, 152)">
-              <ellipse cx="0" cy="0" rx="26" ry="11" fill="#7c2d12"/>
-              <polygon points="-24,0 -38,-10 -34,0 -38,10" fill="#7c2d12"/>
-            </g>
-          </g>
           <!-- 喉囊弹性褶皱高光弧线 -->
           <path id="pouch-crease-1" d="M 560,158 Q 635,204 714,148" fill="none" stroke="#fdba74" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
           <path id="pouch-crease-2" d="M 580,184 Q 638,216 694,174" fill="none" stroke="#fed7aa" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
@@ -958,13 +960,17 @@ function animate() {
   const pouchBottomY = 240 + pouchBounce;
   const pouchPath = `M 532,120 C 532,${pouchBottomY} 698,${pouchBottomY + 4} 748,120 Z`;
   document.getElementById('pouch-main-shape').setAttribute('d', pouchPath);
+  document.getElementById('pouch-back-lining').setAttribute('d', pouchPath);
   document.getElementById('pouch-clip-path').setAttribute('d', pouchPath);
 
-  // 喉囊内深处鱼影随波晃动
-  const fishSwimX = 628 + Math.sin(t * 1.4) * 26;
-  const fishSwimY = 152 + pouchBounce * 0.35 + Math.cos(t * 2.2) * 5;
-  document.getElementById('pouch-fish-inside').setAttribute('transform',
-    `translate(${fishSwimX.toFixed(1)}, ${fishSwimY.toFixed(1)}) rotate(${(Math.sin(t * 2.2) * 6).toFixed(1)})`
+  // 喉囊内海水平面随骑行晃动 (水位在 y=132，鱼在 y=156 完全潜没在水面下！)
+  const wSlosh = Math.sin(t * 3.0) * 4.5;
+  const wY = 132 + pouchBounce * 0.15;
+  document.getElementById('pouch-water-fill').setAttribute('d',
+    `M 526,${wY} Q 585,${wY - 5 + wSlosh} 640,${wY} T 754,${wY - wSlosh} L 754,265 L 526,265 Z`
+  );
+  document.getElementById('pouch-water-wave').setAttribute('d',
+    `M 534,${wY} Q 585,${wY - 5 + wSlosh} 640,${wY} T 746,${wY - wSlosh}`
   );
 
   // 车筐里的小鱼尾巴摇摆
@@ -977,38 +983,38 @@ function animate() {
   document.getElementById('scarf-tail-1').setAttribute('d', `M 496,192 Q 445,${178 + sw} 404,${194 - sw} Q 445,212 498,204 Z`);
   document.getElementById('scarf-tail-2').setAttribute('d', `M 496,198 Q 452,${204 - sw} 418,${222 + sw} Q 462,224 502,206 Z`);
 
-  // 5. 夹心层小蓝鱼：平时半露在上下喙缝隙间游动，点触发时鱼头朝上垂直跃出喉囊再扎回袋子！
+  // 5. 喉囊水下小蓝鱼：平时老老实实潜游在嘴兜水下 (y=156)，点触发时冲破水面 (y=132) 跃上高空再扎回水里！
   const jumpEl = document.getElementById('jumping-fish');
+  const baseFishY = 156 + pouchBounce * 0.35;
   if (jumpAnim > 0) {
     jumpAnim += 0.024;
     if (jumpAnim >= 1) {
       jumpAnim = 0;
       catchImpact = 18;
-      // 落回口袋瞬间溅起小水花
+      // 落回喉囊水面瞬间溅起水花
       for (let s = 0; s < 5; s++) {
         const a = -Math.PI * (0.2 + 0.6 * (s / 4));
         splashDrops.push({
-          x: 636, y: 118,
+          x: 636, y: 128,
           vx: Math.cos(a) * 2.6,
           vy: Math.sin(a) * 2.8 - 1.0,
           life: 0.9
         });
       }
     } else {
-      // 抛物线跃起：从 y=124 冲到最高点 y=42，鱼头先朝上 (-78度) 再朝下 (+72度) 扎回袋子
+      // 抛物线跃起：从水下 y=156 冲破水面飞到最高点 y=42，鱼头先朝上 (-78度) 再朝下 (+72度) 扎回水里
       const lift = Math.sin(jumpAnim * Math.PI);
-      const arcY = 126 - lift * 86;
+      const arcY = baseFishY - lift * 114;
       const arcX = 632 + Math.sin(jumpAnim * Math.PI * 2) * 8;
-      // 鱼头朝右 (+X)，逆时针旋转 -75° 即鱼头朝正上方！
       const pitchDeg = -75 * Math.cos(jumpAnim * Math.PI) + Math.sin(t * 18) * 6;
       jumpEl.setAttribute('transform', `translate(${arcX.toFixed(1)}, ${arcY.toFixed(1)}) rotate(${pitchDeg.toFixed(1)})`);
-      if (jumpAnim < 0.35) beakOpenAngle = -10;
+      if (jumpAnim < 0.45) beakOpenAngle = -14;
     }
   } else {
-    // 平时安稳待在嘴兜夹层里，露出半个蓝背脊和眼睛呼吸游动
-    const idleX = 630 + Math.sin(t * 1.4) * 22;
-    const idleY = 121 + Math.sin(t * 2.8) * 2.5;
-    const idleRot = -4 + Math.cos(t * 2.0) * 4;
+    // 平时安稳潜游在喉囊水下 (y=156)，随水波游动吐泡泡，不再浮在水面上！
+    const idleX = 628 + Math.sin(t * 1.4) * 26;
+    const idleY = baseFishY + Math.cos(t * 2.2) * 5;
+    const idleRot = Math.sin(t * 2.2) * 6;
     jumpEl.setAttribute('transform', `translate(${idleX.toFixed(1)}, ${idleY.toFixed(1)}) rotate(${idleRot.toFixed(1)})`);
   }
 
