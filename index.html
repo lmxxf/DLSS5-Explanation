@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>DLSS 5 交互式架构拆解与 RDNA4 (RX 9070 XT) 极限优化教程</title>
 <style>
   :root {
     --bg: #05080f;
-    --panel: rgba(11, 17, 28, 0.90);
+    --panel: rgba(11, 17, 28, 0.92);
     --border: rgba(0, 224, 255, 0.25);
     --amber: #ffbf00;
     --cyan: #00e5ff;
@@ -17,25 +17,28 @@
     --text: #ecf3f8;
     --muted: #849ab0;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-  body {
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     overflow: hidden;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
   }
   #gl-canvas {
     position: fixed;
     inset: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     z-index: 1;
     cursor: grab;
+    touch-action: none;
   }
   #gl-canvas:active { cursor: grabbing; }
 
+  /* Desktop Grid HUD */
   .hud {
     position: fixed;
     inset: 0;
@@ -52,6 +55,7 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     pointer-events: auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), inset 0 0 18px rgba(0, 229, 255, 0.04);
   }
@@ -65,7 +69,7 @@
     padding: 0 20px;
     border-bottom: 1px solid rgba(0, 229, 255, 0.35);
   }
-  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .chip-badge {
     padding: 6px 10px; border-radius: 7px;
     background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,255,157,0.15));
@@ -73,22 +77,25 @@
     font-family: Consolas, Monaco, monospace;
     font-weight: 800; font-size: 13px; color: var(--cyan);
     box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
+    white-space: nowrap;
   }
   .brand-title {
-    font-size: 17px; font-weight: 800; letter-spacing: 0.8px;
+    font-size: 17px; font-weight: 800; letter-spacing: 0.6px;
     background: linear-gradient(90deg, #fff, var(--cyan), var(--emerald));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .brand-sub {
     font-size: 11.5px; color: var(--muted);
     font-family: Consolas, Monaco, monospace; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  .kpi-group { display: flex; gap: 22px; align-items: center; }
+  .kpi-group { display: flex; gap: 20px; align-items: center; flex-shrink: 0; }
   .kpi { text-align: right; }
-  .kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
   .kpi-val {
-    font-size: 22px; font-weight: 800;
+    font-size: 21px; font-weight: 800;
     font-family: Consolas, Monaco, monospace;
     color: var(--cyan); text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
   }
@@ -100,11 +107,13 @@
   .left-panel {
     grid-column: 1 / 2; grid-row: 2 / 3;
     display: flex; flex-direction: column; padding: 14px; overflow-y: auto; gap: 8px;
+    touch-action: pan-y;
   }
   .section-head {
     font-size: 12.5px; font-weight: 700; color: var(--amber);
     letter-spacing: 0.8px; display: flex; justify-content: space-between; align-items: center;
     padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
   }
   .cut-card {
     background: rgba(255, 255, 255, 0.03);
@@ -114,7 +123,6 @@
   }
   .cut-card:hover {
     border-color: var(--cyan); background: rgba(0, 229, 255, 0.08);
-    transform: translateX(3px);
   }
   .cut-card.active {
     border-color: var(--emerald);
@@ -122,12 +130,12 @@
     box-shadow: inset 3px 0 0 var(--emerald);
   }
   .cut-card.selected-inspect { outline: 1.5px solid var(--amber); }
-  .cut-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+  .cut-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; gap: 6px; }
   .cut-name { font-size: 12.5px; font-weight: 700; color: #fff; }
   .cut-delta {
     font-family: Consolas, Monaco, monospace; font-size: 11px; font-weight: 700;
     color: var(--emerald); background: rgba(0, 255, 157, 0.14);
-    padding: 1px 6px; border-radius: 4px;
+    padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
   }
   .cut-card:not(.active) .cut-delta { color: var(--muted); background: rgba(255,255,255,0.06); }
   .cut-desc { font-size: 11px; color: var(--muted); line-height: 1.38; }
@@ -146,6 +154,7 @@
     border: 1px solid rgba(255, 191, 0, 0.55);
     border-radius: 10px; padding: 12px 16px;
     box-shadow: 0 8px 28px rgba(0,0,0,0.75);
+    touch-action: pan-y;
   }
   .lesson-tabs {
     display: flex; gap: 6px; margin-bottom: 9px; flex-wrap: wrap;
@@ -157,7 +166,6 @@
     border: 1px solid rgba(255,255,255,0.12);
     color: var(--muted); cursor: pointer; transition: all 0.15s;
   }
-  .lesson-tab:hover { color: #fff; border-color: var(--cyan); }
   .lesson-tab.active {
     background: rgba(255, 191, 0, 0.2);
     border-color: var(--amber); color: var(--amber);
@@ -174,24 +182,25 @@
     border: 1px solid var(--amber); background: rgba(255,191,0,0.15);
     color: var(--amber); font-weight: 700; font-size: 11.5px; cursor: pointer;
   }
-  .nav-btn:hover { background: rgba(255,191,0,0.3); color: #fff; }
 
   .hint-pill {
     background: rgba(5, 8, 14, 0.85);
     border: 1px solid rgba(0, 229, 255, 0.3);
     padding: 7px 16px; border-radius: 20px;
     font-size: 11.5px; color: #b8d4e8;
+    text-align: center;
   }
 
   /* Right Panel */
   .right-panel {
     grid-column: 3 / 4; grid-row: 2 / 3;
     display: flex; flex-direction: column; padding: 14px; gap: 10px; overflow: hidden;
+    touch-action: pan-y;
   }
   .meter-box {
     background: rgba(0, 0, 0, 0.42);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px; padding: 10px;
+    border-radius: 8px; padding: 10px; flex-shrink: 0;
   }
   .meter-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
   .progress-track {
@@ -210,8 +219,9 @@
     border-radius: 8px; padding: 10px;
     font-family: Consolas, 'Courier New', monospace;
     font-size: 11.5px; overflow-y: auto; line-height: 1.48; color: #a9c5d8;
+    touch-action: pan-y;
   }
-  .isa-line { white-space: pre-wrap; margin-bottom: 2px; }
+  .isa-line { white-space: pre-wrap; margin-bottom: 2px; word-break: break-all; }
   .isa-bad { color: var(--crimson); background: rgba(255, 56, 100, 0.08); padding: 1px 4px; border-radius: 3px; }
   .isa-good { color: var(--emerald); font-weight: 700; background: rgba(0, 255, 157, 0.08); padding: 1px 4px; border-radius: 3px; }
   .isa-comment { color: #68889e; }
@@ -223,45 +233,187 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 16px; gap: 14px;
   }
-  .stage-pills { display: flex; gap: 7px; flex: 1; }
+  .stage-pills { display: flex; gap: 7px; flex: 1; overflow-x: auto; touch-action: pan-x; }
   .stage-btn {
-    flex: 1; background: rgba(255, 255, 255, 0.03);
+    flex: 1; min-width: 105px; background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px; padding: 8px 9px; color: var(--text);
     cursor: pointer; transition: all 0.18s; text-align: left;
   }
-  .stage-btn:hover, .stage-btn.active {
+  .stage-btn.active {
     border-color: var(--amber); background: rgba(255, 191, 0, 0.14);
-    transform: translateY(-2px);
   }
-  .stage-btn-title { font-size: 11.5px; font-weight: 700; color: var(--amber); }
-  .stage-btn-meta { font-size: 10px; color: var(--muted); font-family: Consolas, monospace; margin-top: 2px; }
+  .stage-btn-title { font-size: 11.5px; font-weight: 700; color: var(--amber); white-space: nowrap; }
+  .stage-btn-meta { font-size: 10px; color: var(--muted); font-family: Consolas, monospace; margin-top: 2px; white-space: nowrap; }
   .stage-btn-ms { font-size: 13px; font-weight: 800; color: var(--cyan); font-family: Consolas, monospace; margin-top: 3px; }
 
-  .action-btns { display: flex; flex-direction: column; gap: 6px; width: 255px; }
+  .action-btns { display: flex; flex-direction: column; gap: 6px; width: 255px; flex-shrink: 0; }
   .btn-row { display: flex; gap: 6px; }
   .btn {
     flex: 1; padding: 8px 10px; border-radius: 6px;
     border: 1px solid var(--cyan); background: rgba(0, 229, 255, 0.12);
     color: #fff; font-size: 11.5px; font-weight: 700;
-    cursor: pointer; transition: all 0.18s; text-align: center;
+    cursor: pointer; transition: all 0.18s; text-align: center; white-space: nowrap;
   }
-  .btn:hover { background: rgba(0, 229, 255, 0.28); box-shadow: 0 0 14px rgba(0, 229, 255, 0.4); }
   .btn.amber { border-color: var(--amber); background: rgba(255, 191, 0, 0.16); color: var(--amber); }
-  .btn.amber:hover { background: rgba(255, 191, 0, 0.32); box-shadow: 0 0 14px rgba(255, 191, 0, 0.45); }
+
+  /* Mobile Bottom Navigation Bar (Hidden on Desktop) */
+  .mobile-nav {
+    display: none;
+  }
 
   #node-tooltip {
-    position: fixed; pointer-events: none; z-index: 50;
+    position: fixed; pointer-events: none; z-index: 60;
     background: rgba(6, 10, 18, 0.96);
     border: 1px solid var(--amber); border-radius: 8px;
     padding: 10px 13px; font-family: Consolas, Monaco, monospace;
     font-size: 11.5px; display: none;
     box-shadow: 0 0 24px rgba(255, 191, 0, 0.35);
-    min-width: 250px;
+    max-width: 270px;
+  }
+
+  /* ==========================================================================
+     📱 手机与平板竖屏响应式适配 (< 1024px)
+     ========================================================================== */
+  @media (max-width: 1024px) {
+    .hud {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px;
+      gap: 6px;
+    }
+
+    /* 1. 精简手机顶栏 */
+    .topbar {
+      padding: 8px 10px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .brand-sub { display: none; }
+    .brand-title { font-size: 13.5px; }
+    .chip-badge { font-size: 11px; padding: 3px 7px; }
+    .kpi-group {
+      justify-content: space-between;
+      gap: 6px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 5px;
+    }
+    .kpi { text-align: center; flex: 1; }
+    .kpi-label { font-size: 9px; }
+    .kpi-val { font-size: 14px; }
+    .kpi-hide-mobile { display: none; }
+
+    /* 2. 中央 3D 视窗留白区 */
+    .center-overlay {
+      flex: 1;
+      padding: 0;
+      justify-content: flex-end;
+    }
+    .hint-pill {
+      font-size: 10px;
+      padding: 4px 10px;
+      margin-bottom: 4px;
+      background: rgba(5, 8, 14, 0.75);
+    }
+
+    /* 3. 底部抽屉面板切换机制 */
+    .tutorial-card,
+    .left-panel,
+    .right-panel,
+    .bottom-panel {
+      display: none;
+      width: 100%;
+      max-height: 44vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+      margin: 0;
+    }
+
+    body[data-mobile-tab="lesson"] .tutorial-card {
+      display: block;
+      max-height: 38vh;
+      padding: 10px 12px;
+    }
+    body[data-mobile-tab="cuts"] .left-panel {
+      display: flex;
+      max-height: 45vh;
+      padding: 10px;
+    }
+    body[data-mobile-tab="isa"] .right-panel {
+      display: flex;
+      max-height: 46vh;
+      padding: 10px;
+    }
+    body[data-mobile-tab="stages"] .bottom-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      max-height: 42vh;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .lesson-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+      touch-action: pan-x;
+    }
+    .lesson-tab { white-space: nowrap; font-size: 10.5px; padding: 4px 8px; }
+    .lesson-body { flex-direction: column; align-items: stretch; gap: 8px; }
+    .lesson-title { font-size: 13px; }
+    .lesson-desc { font-size: 11.5px; line-height: 1.42; }
+    .lesson-nav { justify-content: space-between; }
+    .nav-btn { flex: 1; text-align: center; padding: 6px 0; }
+
+    .stage-pills {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      overflow-x: visible;
+    }
+    .stage-btn { min-width: 0; padding: 7px 8px; }
+    .action-btns { width: 100%; }
+    .isa-terminal { min-height: 150px; font-size: 10.5px; }
+
+    /* 4. 手机底部固定导航栏 */
+    .mobile-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: rgba(8, 13, 22, 0.96);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 10px;
+      padding: 6px;
+      pointer-events: auto;
+      flex-shrink: 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.7);
+    }
+    .m-tab-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .m-tab-btn.active {
+      background: rgba(0, 229, 255, 0.18);
+      border-color: var(--cyan);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+    }
   }
 </style>
 </head>
-<body>
+<body data-mobile-tab="lesson">
 
 <canvas id="gl-canvas"></canvas>
 <div id="node-tooltip"></div>
@@ -271,48 +423,48 @@
   <div class="panel topbar">
     <div class="brand">
       <div class="chip-badge">DLSS 5 // RDNA4</div>
-      <div>
-        <div class="brand-title">DLSS 5 神经渲染架构交互式教程 & RX 9070 XT 算子优化实战</div>
+      <div style="min-width:0;">
+        <div class="brand-title">DLSS 5 架构交互式教程 & RX 9070 XT 优化实战</div>
         <div class="brand-sub">71-Block Hybrid Swin-U-Net + ViT 架构拆解 · RDNA4 (gfx1201) 汇编级调优全记录</div>
       </div>
     </div>
     <div class="kpi-group">
       <div class="kpi">
-        <div class="kpi-label">1920×1152 纯网络耗时</div>
+        <div class="kpi-label">纯网络耗时</div>
         <div class="kpi-val" id="kpi-ms">9.055 ms</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">最佳稳态槽位</div>
+        <div class="kpi-label">最佳稳态</div>
         <div class="kpi-val gold" id="kpi-best">8.945 ms</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">《剑星》2K 实机帧率</div>
+        <div class="kpi-label">剑星 2K 帧率</div>
         <div class="kpi-val green" id="kpi-fps">60.0 FPS</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">每帧 Kernel 启动数</div>
+        <div class="kpi-label">算子发射</div>
         <div class="kpi-val" id="kpi-disp">153</div>
       </div>
-      <div class="kpi">
-        <div class="kpi-label">FP16 逐位精度校验</div>
+      <div class="kpi kpi-hide-mobile">
+        <div class="kpi-label">FP16 逐位校验</div>
         <div class="kpi-val green" style="font-size:14px;">0900E489… (0-DIFF)</div>
       </div>
     </div>
   </div>
 
-  <!-- Left Panel -->
+  <!-- Left Panel (Mobile Tab: cuts) -->
   <div class="panel left-panel">
     <div class="section-head">
       <span>⚡ RDNA4 实战 6 大优化开关</span>
       <span id="active-cuts-badge" style="color:var(--emerald);font-family:monospace;">6 / 6 已开启</span>
     </div>
-    <div style="font-size:11px;color:#b8d0e4;line-height:1.4;padding:4px 2px;">
-      👇 点击任意卡片可<b>单独开关该项优化</b>，观察中央粒子流速度变化与右侧真实的 <b>RDNA4 机器码对比</b>：
+    <div style="font-size:11px;color:#b8d0e4;line-height:1.4;padding:2px 0;flex-shrink:0;">
+      👇 点击卡片<b>单独开关该项优化</b>，观察上方粒子流收束加速，点底部【⚙️ 汇编&指标】看机器码对比：
     </div>
     <div id="cuts-container" style="display:flex;flex-direction:column;gap:7px;"></div>
   </div>
 
-  <!-- Center Overlay: 5-Step Interactive Course -->
+  <!-- Center Overlay (Mobile Tab: lesson) -->
   <div class="center-overlay">
     <div class="tutorial-card">
       <div class="lesson-tabs" id="lesson-tabs"></div>
@@ -329,11 +481,11 @@
     </div>
 
     <div class="hint-pill">
-      🖱️ 左键拖拽 360° 旋转模型 · 滚轮远近缩放 · 鼠标悬停任意节点查看该层算子详情与耗时
+      👆 单指拖拽 360° 旋转 · 双指捏合缩放 · 轻点 3D 节点看单层算子耗时
     </div>
   </div>
 
-  <!-- Right Panel -->
+  <!-- Right Panel (Mobile Tab: isa) -->
   <div class="panel right-panel">
     <div class="section-head">
       <span>🔬 RX 9070 XT (gfx1201) 硬件指标</span>
@@ -358,7 +510,7 @@
       </div>
       <div class="progress-track"><div class="progress-fill amber" id="bar-bw" style="width:95%"></div></div>
 
-      <canvas id="spark-canvas" width="368" height="48" style="width:100%;height:48px;background:rgba(3,6,11,0.9);border:1px solid rgba(0,229,255,0.22);border-radius:6px;margin-top:2px;"></canvas>
+      <canvas id="spark-canvas" width="368" height="44" style="width:100%;height:44px;background:rgba(3,6,11,0.9);border:1px solid rgba(0,229,255,0.22);border-radius:6px;margin-top:2px;"></canvas>
     </div>
 
     <div class="section-head" style="margin-top:2px;">
@@ -368,7 +520,7 @@
     <div class="isa-terminal" id="isa-terminal"></div>
   </div>
 
-  <!-- Bottom Bar -->
+  <!-- Bottom Bar (Mobile Tab: stages) -->
   <div class="panel bottom-panel">
     <div class="stage-pills" id="stage-pills"></div>
     <div class="action-btns">
@@ -377,14 +529,31 @@
         <button class="btn" id="btn-baseline">🐢 退回未优化基线</button>
       </div>
       <div class="btn-row">
-        <button class="btn" id="btn-pulse">🌊 发射单帧前向脉冲</button>
-        <button class="btn" id="btn-reset-cam">🎥 复位全局 3D 视角</button>
+        <button class="btn" id="btn-pulse">🌊 发射前向脉冲</button>
+        <button class="btn" id="btn-reset-cam">🎥 复位 3D 视角</button>
       </div>
     </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <div class="mobile-nav" id="mobile-nav">
+    <button class="m-tab-btn active" data-tab="lesson">📖 5步教程</button>
+    <button class="m-tab-btn" data-tab="cuts">⚡ 6刀优化</button>
+    <button class="m-tab-btn" data-tab="isa">⚙️ 汇编&指标</button>
+    <button class="m-tab-btn" data-tab="stages">🔍 阶段&操作</button>
   </div>
 </div>
 
 <script>
+// 手机底部 Tab 切换逻辑
+document.querySelectorAll('.m-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.getAttribute('data-tab');
+    document.body.setAttribute('data-mobile-tab', t);
+    document.querySelectorAll('.m-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
 // ============================================================================
 // 1. 5 步交互式 DLSS 5 教学课程定义
 // ============================================================================
@@ -408,19 +577,19 @@ const LESSONS = [
     title: '3. 谷底的紫色核心：为什么在 30×18 分辨率要放 9 层 Vision Transformer？',
     desc: '浅层和中层使用的是 <b>8×8 局部窗口注意力 (Swin Window Attention)</b>，算得快但“视野窄”，看不见屏幕另一头飞过来的反射光或大范围阴影。当特征图在谷底缩小到仅 `30×18`（约 640 个 Token）时，模型切换为 <b>ViT 全局注意力瓶颈</b>，让全屏幕每一个区域两两直接对话，打通全局光照一致性。',
     stage: 'ViT',
-    cam: { rotX: 0.25, rotY: 0.0, zoom: 1.48, panY: -68 }
+    cam: { rotX: 0.25, rotY: 0.0, zoom: 1.45, panY: -68 }
   },
   {
     tab: '第 4 课：C512 重装主干',
     title: '4. 算力主战场：C512 深层主干与 RDNA4 FP8 WMMA 矩阵引擎',
     desc: '紧挨谷底两侧的 <b>C512 阶段（18 个块，通道数高达 512）</b> 吃掉了全网近四分之一的算力。每一层都包含 `QKV Attention`、`Projection` 和带 3×3 深度卷积的 `Split-FFN`。在 RX 9070 XT 上，我们用硬件 <b>FP8 矩阵指令 (`v_wmma_f32_16x16x16_fp8_fp8`)</b> 驱动这些巨型矩阵乘法。',
     stage: 'C512',
-    cam: { rotX: 0.30, rotY: 0.24, zoom: 1.32, panY: -42 }
+    cam: { rotX: 0.30, rotY: 0.24, zoom: 1.30, panY: -42 }
   },
   {
     tab: '第 5 课：6 刀破 9ms 实战',
     title: '5. 实战压榨 RX 9070 XT：从 9.61ms 到 8.95ms，锁死《剑星》60 FPS！',
-    desc: '即便用上了 FP8 WMMA，如果<b>内存加载是零碎的 8-Byte</b>、<b>寄存器超标压垮并发度</b>、或者<b>层与层之间把 1B FP8 还原成 4B Float 反复读写显存</b>，GPU 依然有近 20% 时间在空等内存。请点击左侧 6 张优化卡片或右下角【退回未优化基线】，直观对比我们如何砍掉 681.5 MB/帧冗余流量与数百条分支指令！',
+    desc: '即便用上了 FP8 WMMA，如果<b>内存加载是零碎的 8-Byte</b>、<b>寄存器超标压垮并发度</b>、或者<b>层与层之间把 1B FP8 还原成 4B Float 反复读写显存</b>，GPU 依然有近 20% 时间在空等内存。请点击【⚡ 6刀优化】卡片，直观对比我们如何砍掉 681.5 MB/帧冗余流量与数百条分支指令！',
     stage: 'ALL',
     cam: { rotX: 0.28, rotY: -0.22, zoom: 1.05, panY: -10 }
   }
@@ -579,7 +748,7 @@ const STAGES = [
   { id: 'ViT',  name: 'ViT (谷底全局层)', meta: '30×18 · 9 层',    baseMs: 1.199, optMs: 0.945 }
 ];
 
-// 构建 71 个真实算子块坐标（3D U-Net V 型拓扑）
+// 构建 71 个真实算子块坐标
 const BLOCKS = [];
 const STAGE_COLORS = {
   C32:  [0, 229, 255],
@@ -605,7 +774,7 @@ const STAGE_RES   = { C32: '960×576 (552K tok)', C64: '480×288 (138K tok)', C1
 for (let i = 0; i <= 70; i++) {
   const st = getBlockStage(i);
   const d = STAGE_DEPTH[st];
-  const t = (i - 35) / 35; // -1 .. +1
+  const t = (i - 35) / 35;
   const x = t * 430;
   const y = 135 - d * 54 + Math.sin(i * 0.45) * 5;
   const z = Math.cos(t * Math.PI) * 72 + (i >= 29 && i <= 37 ? Math.sin((i - 29) * 0.8) * 32 : 0);
@@ -744,8 +913,8 @@ function renderStagesUI() {
     btn.onclick = () => {
       currentStage = s.id;
       document.getElementById('focus-stage-label').textContent = s.id === 'ALL' ? 'ALL 71 BLOCKS' : `${s.id} STAGE`;
-      if (s.id === 'ViT') { targetRotX = 0.25; targetRotY = 0.0; targetZoom = 1.48; targetPanY = -68; }
-      else if (s.id === 'C512') { targetRotX = 0.30; targetRotY = 0.24; targetZoom = 1.32; targetPanY = -42; }
+      if (s.id === 'ViT') { targetRotX = 0.25; targetRotY = 0.0; targetZoom = 1.45; targetPanY = -68; }
+      else if (s.id === 'C512') { targetRotX = 0.30; targetRotY = 0.24; targetZoom = 1.30; targetPanY = -42; }
       else if (s.id === 'C32') { targetRotX = 0.20; targetRotY = -0.25; targetZoom = 1.1; targetPanY = 30; }
       else { targetRotX = 0.26; targetRotY = 0.18; targetZoom = 1.0; targetPanY = 0; }
       renderStagesUI();
@@ -814,7 +983,7 @@ document.getElementById('btn-reset-cam').onclick = () => {
 };
 
 // ============================================================================
-// 4. 零依赖 3D 全息渲染引擎 (真实呈现 Input G-Buffers -> 71-Block U-Net -> Output Frame)
+// 4. 零依赖 3D 渲染引擎 + 手机原生 Touch 多点触控手势支持
 // ============================================================================
 const canvas = document.getElementById('gl-canvas');
 const ctx = canvas.getContext('2d');
@@ -829,6 +998,9 @@ window.addEventListener('resize', resize);
 resize();
 
 let isDragging = false, lastMX = 0, lastMY = 0, mouseX = -999, mouseY = -999;
+let pinchDist = 0;
+
+// 鼠标事件
 canvas.addEventListener('mousedown', e => { isDragging = true; lastMX = e.clientX; lastMY = e.clientY; });
 window.addEventListener('mouseup', () => isDragging = false);
 window.addEventListener('mousemove', e => {
@@ -841,10 +1013,53 @@ window.addEventListener('mousemove', e => {
 });
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
-  targetZoom = Math.max(0.55, Math.min(2.2, targetZoom - e.deltaY * 0.001));
+  targetZoom = Math.max(0.45, Math.min(2.3, targetZoom - e.deltaY * 0.001));
 }, { passive: false });
 
+// 手机 Touch 单指旋转 + 双指捏合缩放 + 轻点选节点
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    lastMX = e.touches[0].clientX;
+    lastMY = e.touches[0].clientY;
+    mouseX = lastMX;
+    mouseY = lastMY;
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    pinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 1 && isDragging) {
+    const cx = e.touches[0].clientX, cy = e.touches[0].clientY;
+    targetRotY += (cx - lastMX) * 0.0085;
+    targetRotX = Math.max(-0.6, Math.min(0.95, targetRotX + (cy - lastMY) * 0.007));
+    lastMX = cx; lastMY = cy;
+    mouseX = cx; mouseY = cy;
+  } else if (e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    if (pinchDist > 0) {
+      const ratio = d / pinchDist;
+      targetZoom = Math.max(0.45, Math.min(2.3, targetZoom * ratio));
+    }
+    pinchDist = d;
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => {
+  isDragging = false;
+  pinchDist = 0;
+}, { passive: true });
+
 function project3D(x, y, z) {
+  const isMobile = W <= 1024;
   const cy = Math.cos(rotY), sy = Math.sin(rotY);
   let x1 = x * cy - z * sy;
   let z1 = x * sy + z * cy;
@@ -854,12 +1069,17 @@ function project3D(x, y, z) {
   let y2 = y1 * cx - z1 * sx;
   let z2 = y1 * sx + z1 * cx;
 
-  const fov = 760 * zoom;
-  const dist = 690;
+  // 手机竖屏自动适配焦距和屏幕中心点（放置在上方 3D 视窗正中央）
+  const baseFov = isMobile ? Math.min(540, W * 1.15) : 760;
+  const fov = baseFov * zoom;
+  const dist = isMobile ? 760 : 690;
   const scale = fov / Math.max(120, dist + z2);
+  const centerX = isMobile ? W * 0.50 : W * 0.48;
+  const centerY = isMobile ? H * 0.31 : H * 0.52;
+
   return {
-    sx: W * 0.48 + x1 * scale,
-    sy: H * 0.52 - y2 * scale,
+    sx: centerX + x1 * scale,
+    sy: centerY - y2 * scale,
     scale,
     depth: z2
   };
@@ -882,9 +1102,9 @@ const msHistory = new Array(90).fill(9.055);
 function drawSparkline() {
   msHistory.push(currentTotalMs + (Math.random() - 0.5) * 0.03);
   msHistory.shift();
-  sctx.clearRect(0, 0, 368, 48);
+  sctx.clearRect(0, 0, 368, 44);
 
-  const y9 = 48 - ((9.0 - 8.7) / (9.8 - 8.7)) * 38 - 5;
+  const y9 = 44 - ((9.0 - 8.7) / (9.8 - 8.7)) * 34 - 5;
   sctx.strokeStyle = 'rgba(255, 191, 0, 0.35)';
   sctx.setLineDash([4, 4]);
   sctx.beginPath(); sctx.moveTo(0, y9); sctx.lineTo(368, y9); sctx.stroke();
@@ -895,7 +1115,7 @@ function drawSparkline() {
   sctx.beginPath();
   msHistory.forEach((v, idx) => {
     const x = (idx / 89) * 358 + 5;
-    const y = 48 - ((v - 8.7) / (9.8 - 8.7)) * 38 - 5;
+    const y = 44 - ((v - 8.7) / (9.8 - 8.7)) * 34 - 5;
     if (idx === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
   });
   sctx.stroke();
@@ -924,7 +1144,7 @@ function animate() {
 
   ctx.clearRect(0, 0, W, H);
 
-  // 1. 底部空间坐标环与分辨率深度标尺
+  // 1. 底部空间坐标环
   ctx.save();
   for (let r = 140; r <= 440; r += 100) {
     ctx.beginPath();
@@ -946,36 +1166,36 @@ function animate() {
     return { ...b, ...p, inStage };
   });
 
-  // 3. 绘制 좌上角 D3D12 Input G-Buffers 与 右上角 Final Output Frame 端点 (真实的物理输入/输出！)
+  // 3. 绘制 D3D12 Input G-Buffers 与 Final Output Frame 端点
   const bFirst = projBlocks[0], bLast = projBlocks[70];
-  const inHub  = project3D(BLOCKS[0].x - 65, BLOCKS[0].y + 52, BLOCKS[0].z);
-  const outHub = project3D(BLOCKS[70].x + 65, BLOCKS[70].y + 52, BLOCKS[70].z);
+  const inHub  = project3D(BLOCKS[0].x - 55, BLOCKS[0].y + 52, BLOCKS[0].z);
+  const outHub = project3D(BLOCKS[70].x + 55, BLOCKS[70].y + 52, BLOCKS[70].z);
 
-  // 输入/输出连线
   ctx.beginPath();
   ctx.moveTo(inHub.sx, inHub.sy); ctx.lineTo(bFirst.sx, bFirst.sy);
-  ctx.strokeStyle = 'rgba(255, 191, 0, 0.65)'; ctx.lineWidth = 2.2; ctx.stroke();
+  ctx.strokeStyle = 'rgba(255, 191, 0, 0.65)'; ctx.lineWidth = 2.0; ctx.stroke();
 
   ctx.beginPath();
   ctx.moveTo(bLast.sx, bLast.sy); ctx.lineTo(outHub.sx, outHub.sy);
-  ctx.strokeStyle = 'rgba(0, 255, 157, 0.65)'; ctx.lineWidth = 2.2; ctx.stroke();
+  ctx.strokeStyle = 'rgba(0, 255, 157, 0.65)'; ctx.lineWidth = 2.0; ctx.stroke();
 
   function drawEndpointCard(p, title, sub, rgb) {
-    const w = 138 * p.scale, h = 42 * p.scale;
+    const s = Math.max(0.58, p.scale);
+    const w = 135 * s, h = 40 * s;
     ctx.fillStyle = 'rgba(6, 12, 22, 0.9)';
     ctx.strokeStyle = `rgba(${rgb}, 0.85)`;
-    ctx.lineWidth = 1.6;
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.roundRect(p.sx - w / 2, p.sy - h / 2, w, h, 6 * p.scale);
+    ctx.roundRect(p.sx - w / 2, p.sy - h / 2, w, h, 6 * s);
     ctx.fill(); ctx.stroke();
 
     ctx.fillStyle = `rgb(${rgb})`;
-    ctx.font = `bold ${Math.max(9, Math.round(10.5 * p.scale))}px Consolas, sans-serif`;
+    ctx.font = `bold ${Math.max(8, Math.round(10 * s))}px Consolas, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(title, p.sx, p.sy - 3 * p.scale);
+    ctx.fillText(title, p.sx, p.sy - 3 * s);
     ctx.fillStyle = '#cbe0f0';
-    ctx.font = `${Math.max(8, Math.round(9.5 * p.scale))}px Consolas, sans-serif`;
-    ctx.fillText(sub, p.sx, p.sy + 11 * p.scale);
+    ctx.font = `${Math.max(7, Math.round(9 * s))}px Consolas, sans-serif`;
+    ctx.fillText(sub, p.sx, p.sy + 10 * s);
   }
   drawEndpointCard(inHub, '📥 D3D12 INPUT (11 Tex)', 'Noisy + Albedo + Normal + MV', '255, 191, 0');
   drawEndpointCard(outHub, '📤 DLSS-5 OUTPUT', '1920×1080 Denoised 60FPS', '0, 255, 157');
@@ -987,11 +1207,11 @@ function animate() {
     ctx.beginPath();
     ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy);
     ctx.strokeStyle = `rgba(${a.color[0]}, ${a.color[1]}, ${a.color[2]}, ${alpha})`;
-    ctx.lineWidth = 2.5 * a.scale;
+    ctx.lineWidth = 2.4 * a.scale;
     ctx.stroke();
   }
 
-  // 5. 绘制 5 座跨层 Skip-Connection 残差光桥（带文字标注）
+  // 5. 绘制 5 座跨层 Skip-Connection 残差光桥
   SKIP_BRIDGES.forEach(([i0, i1, label]) => {
     const a = projBlocks[i0], b = projBlocks[i1];
     const mid = project3D((a.x + b.x) * 0.5, a.y + 38, (a.z + b.z) * 0.5);
@@ -999,13 +1219,13 @@ function animate() {
     ctx.beginPath();
     ctx.moveTo(a.sx, a.sy);
     ctx.quadraticCurveTo(mid.sx, mid.sy, b.sx, b.sy);
-    ctx.setLineDash([6, 5]);
+    ctx.setLineDash([5, 4]);
     ctx.strokeStyle = `rgba(${a.color[0]}, ${a.color[1]}, ${a.color[2]}, ${alpha})`;
-    ctx.lineWidth = 1.6 * a.scale;
+    ctx.lineWidth = 1.5 * a.scale;
     ctx.stroke();
     ctx.setLineDash([]);
 
-    if (a.inStage || b.inStage) {
+    if ((a.inStage || b.inStage) && W > 520) {
       ctx.fillStyle = `rgba(${a.color[0]}, ${a.color[1]}, ${a.color[2]}, ${alpha + 0.15})`;
       ctx.font = `${Math.max(8, Math.round(9.5 * mid.scale))}px Consolas, monospace`;
       ctx.textAlign = 'center';
@@ -1013,7 +1233,7 @@ function animate() {
     }
   });
 
-  // 6. 绘制实时特征 Token 粒子流 (1B E4M3 ByteStream 开启时收束成高密度激光束)
+  // 6. 绘制实时特征 Token 粒子流
   const byteStreamOn = activeCuts.has('vit_byte_stream');
   const w16On = activeCuts.has('c512_w16') && activeCuts.has('split_ffn_w16');
   const speedMul = (byteStreamOn ? 1.55 : 0.85) * (w16On ? 1.25 : 0.9);
@@ -1033,7 +1253,7 @@ function animate() {
     const proj = project3D(px, py, pz);
     const c = b0.color;
     ctx.beginPath();
-    ctx.arc(proj.sx, proj.sy, Math.max(1.2, (byteStreamOn ? 2.5 : 1.8) * proj.scale), 0, Math.PI * 2);
+    ctx.arc(proj.sx, proj.sy, Math.max(1.1, (byteStreamOn ? 2.4 : 1.7) * proj.scale), 0, Math.PI * 2);
     ctx.fillStyle = byteStreamOn
       ? `rgba(0, 255, 180, 0.85)`
       : `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.55)`;
@@ -1045,9 +1265,10 @@ function animate() {
   let hoveredNode = null;
 
   sortedBlocks.forEach(b => {
-    const r = b.radius * b.scale;
+    const r = Math.max(3.5, b.radius * b.scale);
     const dx = mouseX - b.sx, dy = mouseY - b.sy;
-    const isHover = Math.hypot(dx, dy) < r * 1.45;
+    const hitRadius = W <= 1024 ? r * 2.1 : r * 1.45;
+    const isHover = Math.hypot(dx, dy) < hitRadius;
     if (isHover) hoveredNode = b;
 
     const pulseDist = Math.abs(b.id - pulseTime);
@@ -1073,7 +1294,7 @@ function animate() {
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.25, r * 0.72, 0, 0, Math.PI * 2);
     ctx.strokeStyle = isHover ? '#ffffff' : `rgba(${cr}, ${cg}, ${cb}, ${alpha})`;
-    ctx.lineWidth = isHover ? 2.5 : 1.4;
+    ctx.lineWidth = isHover ? 2.4 : 1.3;
     ctx.stroke();
 
     ctx.beginPath();
@@ -1084,28 +1305,28 @@ function animate() {
 
     if ([0, 4, 8, 13, 20, 29, 33, 38, 47, 55, 61, 66, 70].includes(b.id) && b.inStage) {
       ctx.fillStyle = `rgba(235, 245, 255, ${alpha})`;
-      ctx.font = `bold ${Math.max(9, Math.round(10.5 * b.scale))}px Consolas, monospace`;
+      ctx.font = `bold ${Math.max(8, Math.round(10 * b.scale))}px Consolas, monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(`B${b.id}:${b.stage}`, b.sx, b.sy + r * 1.9);
     }
   });
 
-  // 8. 悬停提示框
+  // 8. 悬停/轻点提示框（自动防溢出屏幕边缘）
   if (hoveredNode) {
     tooltip.style.display = 'block';
-    tooltip.style.left = `${mouseX + 16}px`;
-    tooltip.style.top = `${mouseY - 20}px`;
+    const tx = Math.min(W - 275, Math.max(8, mouseX + 12));
+    const ty = Math.max(68, Math.min(H - 160, mouseY - 24));
+    tooltip.style.left = `${tx}px`;
+    tooltip.style.top = `${ty}px`;
     const ratio = activeCuts.size / CUTS.length;
     const curUs = (hoveredNode.us * (1 - 0.14 * ratio)).toFixed(1);
     tooltip.innerHTML = `
-      <div style="color:var(--amber);font-weight:bold;font-size:12.5px;margin-bottom:4px;">
-        Block #${hoveredNode.id} // ${hoveredNode.stage} (${hoveredNode.id < 29 ? 'Encoder 下采样' : hoveredNode.id <= 37 ? 'ViT 全局瓶颈' : 'Decoder 上采样'})
+      <div style="color:var(--amber);font-weight:bold;font-size:12px;margin-bottom:3px;">
+        Block #${hoveredNode.id} // ${hoveredNode.stage} (${hoveredNode.id < 29 ? 'Encoder' : hoveredNode.id <= 37 ? 'ViT 瓶颈' : 'Decoder'})
       </div>
-      <div style="color:#fff;margin-bottom:4px;">作用: ${hoveredNode.roleDesc}</div>
-      <div style="color:var(--cyan);margin-bottom:3px;">Kernel: ${hoveredNode.kernel}</div>
-      <div>特征图尺寸: <span style="color:#fff">${hoveredNode.res}</span></div>
-      <div>单算子耗时: <span style="color:var(--emerald);font-weight:bold;">${curUs} µs</span></div>
-      <div style="color:var(--muted);font-size:10px;margin-top:4px;">访存模式: ${activeCuts.has('c512_w16') ? '16-Byte W16 (b128) + 1B E4M3' : '2x 8-Byte Legacy'}</div>
+      <div style="color:#fff;margin-bottom:3px;">${hoveredNode.roleDesc}</div>
+      <div style="color:var(--cyan);margin-bottom:2px;">Kernel: ${hoveredNode.kernel}</div>
+      <div>尺寸: <span style="color:#fff">${hoveredNode.res}</span> · 耗时: <span style="color:var(--emerald);font-weight:bold;">${curUs} µs</span></div>
     `;
   } else {
     tooltip.style.display = 'none';
