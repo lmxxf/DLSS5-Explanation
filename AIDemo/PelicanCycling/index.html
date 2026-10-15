@@ -328,15 +328,31 @@
     <rect x="0" y="482" width="1200" height="10" fill="#cbd5e1"/>
 
     <g id="layer-beach-props">
+      <!-- 橙白相间海滩遮阳伞 -->
+      <g transform="translate(265, 405)">
+        <line x1="0" y1="0" x2="-6" y2="52" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"/>
+        <path d="M -46,8 Q 0,-32 46,8 Z" fill="#f97316" stroke="#ffffff" stroke-width="2.5"/>
+        <path d="M -18,8 Q 0,-28 18,8 Z" fill="#ffffff"/>
+      </g>
+
       <!-- FISH 5KM 指路木牌 -->
-      <g transform="translate(160, 405)">
-        <rect x="-4" y="0" width="8" height="52" fill="#78350f"/>
+      <g transform="translate(115, 408)">
+        <rect x="-4" y="0" width="8" height="48" fill="#78350f"/>
         <polygon points="-36,4 28,4 40,16 28,28 -36,28" fill="#d97706" stroke="#fef3c7" stroke-width="2"/>
         <text x="-4" y="20" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="Consolas, sans-serif">FISH 5KM</text>
       </g>
 
+      <!-- 海滩绿灌木丛 (带小红果) -->
+      <g transform="translate(765, 446)">
+        <path d="M -38,6 C -38,-22 38,-22 38,6 Z" fill="#16a34a"/>
+        <circle cx="-18" cy="-4" r="14" fill="#22c55e"/>
+        <circle cx="16" cy="-2" r="12" fill="#15803d"/>
+        <circle cx="-8" cy="-8" r="3" fill="#ef4444"/>
+        <circle cx="10" cy="-6" r="2.8" fill="#fbbf24"/>
+      </g>
+
       <!-- 左侧椰子树 -->
-      <g transform="translate(435, 315)">
+      <g transform="translate(525, 315)">
         <path d="M 0,142 Q 16,80 -6,18" fill="none" stroke="#92400e" stroke-width="14" stroke-linecap="round"/>
         <path d="M -6,18 Q -48,6 -62,32" fill="none" stroke="#16a34a" stroke-width="11" stroke-linecap="round"/>
         <path d="M -6,18 Q -32,-18 -6,-26" fill="none" stroke="#22c55e" stroke-width="10" stroke-linecap="round"/>
@@ -496,7 +512,7 @@
       </g>
 
       <!-- ====================================================================
-           [G] 鹈鹕皮特本尊 (Pelican Pete)
+           [G] 鹈鹕皮特本尊 (Pelican Pete · 三明治口袋图层架构)
            ==================================================================== -->
       <g id="pelican-body-group">
         <!-- 翘起的可爱白色尾羽 -->
@@ -519,41 +535,47 @@
         <circle cx="514" cy="112" r="26" fill="#ffffff"/>
 
         <!-- ==================================================================
-             标志性巨型半透明橙色大嘴喉囊 (点击可让里面的大鱼欢跃翻跟头!)
+             三明治大嘴结构 (点击可让里面的蓝鱼垂直跃出嘴袋!)
+             第 1 层 (里层)：深棕口腔内壁 + 金黄色长上喙
+             第 2 层 (夹心层)：活蹦乱跳的蓝鱼 (平时半露在上下嘴唇缝隙间，跃起时往上冲出！)
+             第 3 层 (外层)：巨型橙色下颌喉囊前壁 (自然遮挡住鱼的下半身，严丝合缝像装在兜里!)
              ================================================================== -->
         <g id="pelican-pouch-group" class="interactive-hotspot">
-          <!-- 喉囊主体 (从嘴角 x=532, y=118 开始，绝不挡眼睛!) -->
-          <path id="pouch-main-shape" d="M 532,118 C 532,238 698,242 748,118 Z"
+          <!-- [第 1 层] 口腔深色内衬 (让上下喙之间有立体纵深感) -->
+          <path id="mouth-interior" d="M 532,113 L 746,105 L 748,124 L 532,124 Z" fill="#7c2d12"/>
+
+          <!-- [第 1.5 层] 金黄色长上喙 (张嘴或鱼跃起时微微抬起) -->
+          <g id="upper-beak" style="transform-origin: 534px 112px;">
+            <path d="M 532,105 L 748,95 C 756,95 758,107 750,113 L 532,117 Z" fill="url(#beakTopGrad)" stroke="#d97706" stroke-width="2.5"/>
+            <path d="M 744,95 C 756,95 760,109 748,117 C 744,111 742,103 744,95 Z" fill="#ef4444"/>
+          </g>
+
+          <!-- [第 2 层 · 夹心层] 装在嘴兜里的蓝色小鱼 (平时露背脊在 y=120，跃起时鱼头朝上冲出!) -->
+          <g id="jumping-fish" transform="translate(632, 124) rotate(-8)">
+            <!-- 鱼身、背鳍、尾鳍、呆萌鱼眼 -->
+            <path d="M -22,-6 Q -6,-15 14,-8" fill="none" stroke="#0284c7" stroke-width="4" stroke-linecap="round"/>
+            <ellipse cx="0" cy="0" rx="28" ry="12" fill="#0ea5e9" stroke="#0369a1" stroke-width="2.2"/>
+            <path d="M -18,4 Q 0,10 18,3" fill="none" stroke="#bae6fd" stroke-width="2" opacity="0.8"/>
+            <polygon id="fish-tail-poly" points="-26,0 -42,-12 -37,0 -42,12" fill="#38bdf8" stroke="#0369a1" stroke-width="1.8"/>
+            <circle cx="16" cy="-3" r="3.2" fill="#ffffff"/>
+            <circle cx="17" cy="-3" r="1.6" fill="#0f172a"/>
+            <!-- 腮红與鱼鳃线 -->
+            <path d="M 6,-5 Q 2,0 6,5" fill="none" stroke="#0369a1" stroke-width="1.8" stroke-linecap="round"/>
+          </g>
+
+          <!-- [第 3 层 · 最外层口袋壁] 巨型橙色喉囊前兜 (盖在鱼下半身前面!) -->
+          <path id="pouch-main-shape" d="M 532,120 C 532,238 698,242 748,120 Z"
                 fill="url(#pouchGrad)" stroke="#c2410c" stroke-width="3.5" stroke-linejoin="round"/>
-          <!-- 喉囊内部水位波纹与游动的大鱼 (带裁剪) -->
-          <g clip-path="url(#pouchClip)">
-            <path id="pouch-water" d="M 526,165 Q 580,155 640,165 T 760,165 L 760,250 L 526,250 Z" fill="#38bdf8" opacity="0.28"/>
-            <!-- 喉囊里的大鱼 -->
-            <g id="pouch-fish-inside" transform="translate(625, 165)">
-              <ellipse cx="0" cy="0" rx="26" ry="12" fill="#d97706" opacity="0.65"/>
-              <polygon points="-24,0 -40,-11 -36,0 -40,11" fill="#d97706" opacity="0.65"/>
-              <circle cx="14" cy="-3" r="2.5" fill="#78350f" opacity="0.7"/>
-              <path d="M -6,-4 Q 4,4 -6,8" fill="none" stroke="#b45309" stroke-width="2" opacity="0.6"/>
+          <!-- 喉囊内部隐约透出的鱼影 (增强半透明质感) -->
+          <g clip-path="url(#pouchClip)" opacity="0.28">
+            <g id="pouch-fish-inside" transform="translate(632, 152)">
+              <ellipse cx="0" cy="0" rx="26" ry="11" fill="#7c2d12"/>
+              <polygon points="-24,0 -38,-10 -34,0 -38,10" fill="#7c2d12"/>
             </g>
           </g>
-          <!-- 喉囊弹性褶皱高光 -->
-          <path id="pouch-crease-1" d="M 560,158 Q 635,204 714,148" fill="none" stroke="#fdba74" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+          <!-- 喉囊弹性褶皱高光弧线 -->
+          <path id="pouch-crease-1" d="M 560,158 Q 635,204 714,148" fill="none" stroke="#fdba74" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
           <path id="pouch-crease-2" d="M 580,184 Q 638,216 694,174" fill="none" stroke="#fed7aa" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
-
-          <!-- 跃出喉囊的欢快蓝鱼 (触发【小鱼跃起】时飞出水面翻跟头!) -->
-          <g id="jumping-fish" transform="translate(635, 155) scale(0)" opacity="0">
-            <ellipse cx="0" cy="0" rx="24" ry="11" fill="#0ea5e9" stroke="#0369a1" stroke-width="2"/>
-            <polygon points="-22,0 -36,-11 -32,0 -36,11" fill="#38bdf8" stroke="#0369a1" stroke-width="1.5"/>
-            <circle cx="13" cy="-3" r="2.5" fill="#ffffff"/>
-            <circle cx="14" cy="-3" r="1.3" fill="#0f172a"/>
-          </g>
-
-          <!-- 金黄色长上喙 (张嘴接鱼时会向上抬起，轴心在嘴根 534, 114) -->
-          <g id="upper-beak" style="transform-origin: 534px 114px;">
-            <path d="M 532,108 L 748,96 C 756,96 758,108 750,114 L 532,120 Z" fill="url(#beakTopGrad)" stroke="#d97706" stroke-width="2.5"/>
-            <!-- 喙尖红色弯钩 -->
-            <path d="M 744,96 C 756,96 760,110 748,118 C 744,112 742,104 744,96 Z" fill="#ef4444"/>
-          </g>
         </g>
 
         <!-- 呆萌大眼睛与红扑扑脸颊 (画在最顶层，绝对不被嘴挡住!) -->
@@ -932,17 +954,17 @@ function animate() {
   else catchImpact = 0;
 
   // 喉囊随踩踏节奏 + 接鱼冲量上下Q弹变形
-  let pouchBounce = Math.sin(crankAngle * 2 - 0.6) * 10 + catchImpact + (jumpAnim > 0 ? Math.sin(jumpAnim * Math.PI * 2) * 14 : 0);
+  let pouchBounce = Math.sin(crankAngle * 2 - 0.6) * 10 + catchImpact + (jumpAnim > 0 ? Math.sin(jumpAnim * Math.PI * 2) * 12 : 0);
   const pouchBottomY = 240 + pouchBounce;
-  const pouchPath = `M 532,118 C 532,${pouchBottomY} 698,${pouchBottomY + 4} 748,118 Z`;
+  const pouchPath = `M 532,120 C 532,${pouchBottomY} 698,${pouchBottomY + 4} 748,120 Z`;
   document.getElementById('pouch-main-shape').setAttribute('d', pouchPath);
   document.getElementById('pouch-clip-path').setAttribute('d', pouchPath);
 
-  // 喉囊内大鱼游动
-  const fishSwimX = 625 + Math.sin(t * 1.4) * 28;
-  const fishSwimY = 165 + pouchBounce * 0.45 + Math.cos(t * 2.2) * 6;
+  // 喉囊内深处鱼影随波晃动
+  const fishSwimX = 628 + Math.sin(t * 1.4) * 26;
+  const fishSwimY = 152 + pouchBounce * 0.35 + Math.cos(t * 2.2) * 5;
   document.getElementById('pouch-fish-inside').setAttribute('transform',
-    `translate(${fishSwimX.toFixed(1)}, ${fishSwimY.toFixed(1)}) rotate(${(Math.sin(t * 2.2) * 8).toFixed(1)})`
+    `translate(${fishSwimX.toFixed(1)}, ${fishSwimY.toFixed(1)}) rotate(${(Math.sin(t * 2.2) * 6).toFixed(1)})`
   );
 
   // 车筐里的小鱼尾巴摇摆
@@ -955,19 +977,39 @@ function animate() {
   document.getElementById('scarf-tail-1').setAttribute('d', `M 496,192 Q 445,${178 + sw} 404,${194 - sw} Q 445,212 498,204 Z`);
   document.getElementById('scarf-tail-2').setAttribute('d', `M 496,198 Q 452,${204 - sw} 418,${222 + sw} Q 462,224 502,206 Z`);
 
-  // 5. 小鱼跃起翻跟头动画 (Jump Animation)
+  // 5. 夹心层小蓝鱼：平时半露在上下喙缝隙间游动，点触发时鱼头朝上垂直跃出喉囊再扎回袋子！
   const jumpEl = document.getElementById('jumping-fish');
   if (jumpAnim > 0) {
-    jumpAnim += 0.026;
+    jumpAnim += 0.024;
     if (jumpAnim >= 1) {
       jumpAnim = 0;
-      jumpEl.setAttribute('opacity', '0');
+      catchImpact = 18;
+      // 落回口袋瞬间溅起小水花
+      for (let s = 0; s < 5; s++) {
+        const a = -Math.PI * (0.2 + 0.6 * (s / 4));
+        splashDrops.push({
+          x: 636, y: 118,
+          vx: Math.cos(a) * 2.6,
+          vy: Math.sin(a) * 2.8 - 1.0,
+          life: 0.9
+        });
+      }
     } else {
-      const arcY = 145 - Math.sin(jumpAnim * Math.PI) * 125;
-      const rot = -jumpAnim * 360;
-      jumpEl.setAttribute('opacity', '1');
-      jumpEl.setAttribute('transform', `translate(635, ${arcY.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(1.15)`);
+      // 抛物线跃起：从 y=124 冲到最高点 y=42，鱼头先朝上 (-78度) 再朝下 (+72度) 扎回袋子
+      const lift = Math.sin(jumpAnim * Math.PI);
+      const arcY = 126 - lift * 86;
+      const arcX = 632 + Math.sin(jumpAnim * Math.PI * 2) * 8;
+      // 鱼头朝右 (+X)，逆时针旋转 -75° 即鱼头朝正上方！
+      const pitchDeg = -75 * Math.cos(jumpAnim * Math.PI) + Math.sin(t * 18) * 6;
+      jumpEl.setAttribute('transform', `translate(${arcX.toFixed(1)}, ${arcY.toFixed(1)}) rotate(${pitchDeg.toFixed(1)})`);
+      if (jumpAnim < 0.35) beakOpenAngle = -10;
     }
+  } else {
+    // 平时安稳待在嘴兜夹层里，露出半个蓝背脊和眼睛呼吸游动
+    const idleX = 630 + Math.sin(t * 1.4) * 22;
+    const idleY = 121 + Math.sin(t * 2.8) * 2.5;
+    const idleRot = -4 + Math.cos(t * 2.0) * 4;
+    jumpEl.setAttribute('transform', `translate(${idleX.toFixed(1)}, ${idleY.toFixed(1)}) rotate(${idleRot.toFixed(1)})`);
   }
 
   // 6. 翘头特技整体绕后轮轴心 (412, 434) 旋转
