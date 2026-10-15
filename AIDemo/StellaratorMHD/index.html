@@ -6,15 +6,14 @@
 <title>三维恒星器超导线圈与核聚变磁面求解器 (3D Stellarator MHD & Grad's Conjecture Lab)</title>
 <style>
   :root {
-    --bg0: #050811;
-    --bg1: #0b1324;
-    --panel: rgba(10, 18, 34, 0.88);
-    --panel-border: rgba(0, 229, 255, 0.26);
+    --bg0: #040710;
+    --bg1: #0a1222;
+    --panel: rgba(9, 16, 30, 0.90);
+    --panel-border: rgba(0, 229, 255, 0.28);
     --cyan: #00e5ff;
     --amber: #ffbf00;
     --emerald: #00ff9d;
     --magenta: #ff3d81;
-    --violet: #a855f7;
     --text: #f1f5f9;
     --muted: #94a3b8;
     --mono: 'WenQuanYi Micro Hei', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
@@ -32,7 +31,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: radial-gradient(circle at 38% 46%, #132342 0%, #080f1e 62%, #04070f 100%);
+    background: radial-gradient(circle at 46% 48%, #122240 0%, #070d1a 60%, #03060c 100%);
     color: var(--text);
     font-family: 'WenQuanYi Micro Hei', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
     touch-action: none;
@@ -73,8 +72,8 @@
     border-radius: 12px;
     padding: 10px 15px;
     backdrop-filter: blur(12px);
-    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
-    max-width: 680px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65);
+    max-width: 690px;
   }
   .brand-row {
     display: flex;
@@ -412,7 +411,7 @@
     width: 150px;
     height: 10px;
     border-radius: 5px;
-    background: linear-gradient(90deg, #1e3a8a, #00e5ff, #00ff9d, #ffbf00, #ff2a6d);
+    background: linear-gradient(90deg, #1d4ed8, #00e5ff, #00ff9d, #ffbf00, #ff2a6d);
     border: 1px solid rgba(255, 255, 255, 0.25);
   }
   .mono-num {
@@ -442,7 +441,7 @@
   <div class="brand-box">
     <div class="brand-row">
       <a class="back-btn" href="../index.html">◀ 返回陈列馆</a>
-      <span class="badge-tag">3D MHD EQUILIBRIUM · GRAD'S CONJECTURE COUNTEREXAMPLE · BIOT-SAVART COILS</span>
+      <span class="badge-tag">3D MHD EQUILIBRIUM · GRAD'S CONJECTURE COUNTEREXAMPLE · 3D MODULAR COILS</span>
     </div>
     <div class="main-title" style="margin-top:4px;">三维恒星器超导线圈与核聚变磁面求解器 (Stellarator MHD Solver)</div>
     <div class="sub-formula">
@@ -461,11 +460,11 @@
     </div>
     <div class="kpi-card">
       <div class="kpi-label">格拉德奇异残差 ||R_Grad||</div>
-      <div class="kpi-val amber" id="kpiGradRes">1.4e-5 (光滑收敛)</div>
+      <div class="kpi-val amber" id="kpiGradRes">1.2e-5 (光滑收敛)</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">体积平均 β / 磁镜比</div>
-      <div class="kpi-val magenta" id="kpiBeta">β = 4.2% · M = 1.38</div>
+      <div class="kpi-val magenta" id="kpiBeta">β = 4.4% · M = 1.42</div>
     </div>
   </div>
 </div>
@@ -511,17 +510,17 @@
   <div class="ctrl-row">
     <div class="ctrl-label">
       <span>磁轴三维螺旋挠率 τ<sub>axis</sub></span>
-      <code id="valHelicity">0.28</code>
+      <code id="valHelicity">0.36</code>
     </div>
-    <input type="range" id="slHelicity" min="0.00" max="0.50" step="0.01" value="0.28">
+    <input type="range" id="slHelicity" min="0.05" max="0.55" step="0.01" value="0.36">
   </div>
 
   <div class="ctrl-row">
     <div class="ctrl-label">
-      <span>豆形/三角形截面整形度 δ<sub>bean</sub></span>
-      <code id="valShaping">0.34</code>
+      <span>豆形/三角形截面扭转整形度 δ<sub>bean</sub></span>
+      <code id="valShaping">0.42</code>
     </div>
-    <input type="range" id="slShaping" min="0.05" max="0.55" step="0.01" value="0.34">
+    <input type="range" id="slShaping" min="0.10" max="0.60" step="0.01" value="0.42">
   </div>
 
   <div class="ctrl-row">
@@ -542,18 +541,18 @@
 
   <div class="ctrl-row">
     <div class="ctrl-label">
-      <span>激光庞加莱切面环向角 ζ<sub>0</sub></span>
-      <code id="valZeta0">36.0°</code>
+      <span>剖面环向相位角 ζ<sub>0</sub> (观察豆形→三角形翻转)</span>
+      <code id="valZeta0">32°</code>
     </div>
-    <input type="range" id="slZeta0" min="0" max="360" step="1" value="36">
+    <input type="range" id="slZeta0" min="0" max="360" step="1" value="32">
   </div>
 
   <div class="ctrl-row">
     <div class="ctrl-label">
-      <span>超导线圈解剖窗口 Δζ<sub>cut</sub></span>
-      <code id="valCoilCut">135° (露出内部磁面)</code>
+      <span>超导线圈与外磁面解剖窗口 Δζ<sub>cut</sub></span>
+      <code id="valCoilCut">130° (阶梯剥离三层磁面)</code>
     </div>
-    <input type="range" id="slCoilCut" min="0" max="270" step="5" value="135">
+    <input type="range" id="slCoilCut" min="0" max="260" step="5" value="130">
   </div>
 
   <div class="sec-head">
@@ -568,12 +567,12 @@
   </div>
 
   <div class="toggle-grid">
-    <label class="toggle-chip"><input type="checkbox" id="chkCoils" checked> 40组模块化超导线圈</label>
+    <label class="toggle-chip"><input type="checkbox" id="chkCoils" checked> 40组立体超导线圈盒</label>
     <label class="toggle-chip"><input type="checkbox" id="chkFieldLines" checked> RK4 三维磁力线追踪</label>
     <label class="toggle-chip"><input type="checkbox" id="chkParticles" checked> 3.5MeV α粒子香蕉轨道</label>
-    <label class="toggle-chip"><input type="checkbox" id="chkNested" checked> 三层嵌套等磁通面 ψ</label>
-    <label class="toggle-chip"><input type="checkbox" id="chkSlicer" checked> 环向激光庞加莱截面刀</label>
-    <label class="toggle-chip"><input type="checkbox" id="chkAutoRot" checked> 环向截面/视角微旋</label>
+    <label class="toggle-chip"><input type="checkbox" id="chkNested" checked> 阶梯剖开三层嵌套磁面</label>
+    <label class="toggle-chip"><input type="checkbox" id="chkSlicer" checked> 实心横截面端盖 & 切面环</label>
+    <label class="toggle-chip"><input type="checkbox" id="chkAutoRot"> 环向截面自动扫掠</label>
   </div>
 
   <div class="theory-box" id="theoryBox">
@@ -589,7 +588,7 @@
 <div class="right-panel">
   <div class="sec-head">
     <span>A. 实时庞加莱截面 (Poincaré Map @ ζ = ζ₀)</span>
-    <span class="hint" id="poincareLabel">ζ₀ = 36° · 新月豆形截面</span>
+    <span class="hint" id="poincareLabel">ζ₀ = 32° · 新月豆形截面</span>
   </div>
   <div class="canvas-card">
     <canvas id="poincareCanvas" width="320" height="250"></canvas>
@@ -636,34 +635,34 @@
   'use strict';
 
   // =========================================================================
-  // 1. 物理与三维微分几何状态参数 (Stellarator 3D MHD Equilibrium State)
+  // 1. 恒星器三维微分几何与 MHD 平衡状态参数
   // =========================================================================
   const state = {
     preset: 'grad_counter',
-    Nfp: 5,                  // 场周期数 N_fp (3, 4, 5, 6)
-    R0: 3.15,                // 大半径 Major radius (m)
-    a0: 0.78,                // 平均小半径 Minor radius (m)
-    helicity: 0.28,          // 磁轴三维螺旋振幅 (控制非平面挠率 tau)
-    shaping: 0.34,           // 截面旋转豆形/三角形整形度 (控制旋转变换与磁阱)
-    iota0: 0.855,            // 磁轴旋转变换 iota(0)
+    Nfp: 5,                  // 场周期数 N_fp (默认 5，仿 W7-X 五重对称)
+    R0: 3.10,                // 大半径 Major radius (m)
+    a0: 0.78,                // 平均等离子体小半径 Minor radius (m)
+    helicity: 0.36,          // 磁轴三维螺旋挠率振幅 (显著展现非平面扭转)
+    shaping: 0.42,           // 豆形/水滴/三角形截面旋转整形度
+    iota0: 0.855,            // 芯部旋转变换 iota(0)
     iota1: 1.085,            // 边界旋转变换 iota(1)
     islandAmp: 0.000,        // 有理面共振摄动幅度 epsilon_{m,n}
     chaosAmp: 0.000,         // 多模重叠混沌幅度
-    gradCancel: 1.0,         // 格拉德猜想反例消奇异系数 (1.0 = 严格抵消, 0.0 = 一般三维发散)
-    zeta0Deg: 36,            // 庞加莱激光截面环向角 (deg)
-    coilCutDeg: 135,         // 模块化超导线圈解剖可视窗口 (deg)
+    gradCancel: 1.0,         // 格拉德猜想反例消奇异系数
+    zeta0Deg: 32,            // 庞加莱切面环向角 (deg)
+    coilCutDeg: 130,         // 阶梯解剖窗口角度 (deg)
     fieldMode: 'Bmod',       // 'Bmod' | 'Jpar' | 'GradP' | 'Curv'
     showCoils: true,
     showFieldLines: true,
     showParticles: true,
     showNested: true,
     showSlicer: true,
-    autoRot: true,
+    autoRot: false,
 
-    // Camera state
-    camYaw: -0.68,
-    camPitch: 0.48,
-    camDist: 8.6,
+    // 3D Camera Orbit
+    camYaw: -0.72,
+    camPitch: 0.56,
+    camDist: 8.8,
     camPanX: 0.0,
     camPanY: 0.0,
     time: 0
@@ -671,54 +670,52 @@
 
   // =========================================================================
   // 2. 恒星器三维非轴对称磁面正映射: (s, theta, zeta) -> (x, y, z, R, Z)
-  //    s = sqrt(psi) in [0, 1.35] (s > 1 为超导线圈绕线流形 Winding Surface)
+  //    真实展现 W7-X 式的五重螺旋磁轴 + 旋转椭圆/新月豆形/三角形截面翻转
   // =========================================================================
   function evalStellaratorPoint(s, theta, zeta, includeIslandPerturb = true) {
     const Nfp = state.Nfp;
     const nzeta = Nfp * zeta;
 
-    // 1) 三维非平面磁轴 (3D Helical Magnetic Axis with curvature & torsion)
-    const axisR = state.R0 + state.helicity * 0.42 * Math.cos(nzeta) + 0.04 * state.helicity * Math.cos(2 * nzeta);
-    const axisZ = -state.helicity * 0.42 * Math.sin(nzeta) - 0.04 * state.helicity * Math.sin(2 * nzeta);
+    // 1) 三维非平面螺旋磁轴 (3D Helical Magnetic Axis with strong spatial torsion)
+    const axisR = state.R0 + state.helicity * 0.52 * Math.cos(nzeta) + 0.05 * state.helicity * Math.cos(2 * nzeta);
+    const axisZ = -state.helicity * 0.52 * Math.sin(nzeta) - 0.05 * state.helicity * Math.sin(2 * nzeta);
 
     // 2) 有理面磁岛径向微扰 (当 s 靠近共振面 s_res, iota(s_res) = 1.0 时)
     let sEff = s;
-    if (includeIslandPerturb && state.islandAmp > 1e-4 && s <= 1.05) {
-      // 共振阶 m = Nfp, n = Nfp => iota_res = 1.0
+    if (includeIslandPerturb && state.islandAmp > 1e-4 && s <= 1.08) {
       const iotaS = state.iota0 + (state.iota1 - state.iota0) * s * s;
       const dIota = iotaS - 1.0;
-      const env = Math.exp(-(dIota * dIota) / 0.018) * s * (1.12 - 0.7 * s);
+      const env = Math.exp(-(dIota * dIota) / 0.022) * s * (1.15 - 0.65 * s);
       const phase = Nfp * theta - nzeta;
-      sEff += state.islandAmp * 0.85 * env * Math.cos(phase);
+      sEff += state.islandAmp * 1.15 * env * Math.cos(phase);
       if (state.chaosAmp > 1e-4) {
-        sEff += state.chaosAmp * 0.65 * s * Math.cos((Nfp + 1) * theta - nzeta + 0.7)
-              + state.chaosAmp * 0.45 * s * Math.sin((Nfp - 1) * theta - nzeta);
+        sEff += state.chaosAmp * 0.75 * s * Math.cos((Nfp + 1) * theta - nzeta + 0.7)
+              + state.chaosAmp * 0.52 * s * Math.sin((Nfp - 1) * theta - nzeta);
       }
     }
 
     const r = state.a0 * sEff;
 
-    // 3) 随环向角旋转的椭圆率 (Rotating Elongation m=2) 与豆形/三角形缩进 (Bean Indentation m=2,3)
-    const halfNzeta = 0.5 * nzeta;
-    const u = theta - halfNzeta; // 螺旋旋转角架
-    const elong = 1.0 + 0.34 * state.shaping * Math.cos(nzeta);
-    const bean = state.shaping * (0.48 + 0.22 * Math.cos(nzeta));
-    const tri = state.shaping * 0.38 * Math.sin(nzeta);
+    // 3) 随环向角旋转的截面：每走过半个场周期，截面旋转 90° 并从新月豆形 (Bean) 变为三角形 (Triangular)
+    const rotAngle = 0.5 * nzeta;
+    const u = theta - rotAngle; // 螺旋旋转极向角
 
-    // 局部截面坐标 (在旋转标架 u 下构造新月豆形 -> 水滴形 -> 三角形连续过渡)
-    const rhoLocal = r * (
-      1.0
-      + 0.26 * state.shaping * Math.cos(2 * u)
-      - 0.22 * bean * Math.cos(theta - nzeta) * Math.sin(theta)
-      + 0.16 * tri * Math.cos(3 * u)
-    );
+    // 在旋转标架 u 下构造拉长椭圆 + 三角形 + 内侧豆形凹陷
+    const kappaElong = 1.0 + 0.36 * state.shaping; // 截面拉长比
+    const triAmp = 0.28 * state.shaping * Math.cos(nzeta);
+    const beanIndent = 0.34 * state.shaping * Math.cos(nzeta);
 
-    // 豆形内侧缩进 (Crescent / Bean indentation facing magnetic axis at zeta=0)
-    const indent = -0.32 * state.shaping * r * Math.sin(theta) * Math.sin(theta) * Math.cos(nzeta);
+    const rMajor = r * (1.0 - 0.18 * state.shaping * Math.cos(2 * u) + 0.14 * triAmp * Math.cos(3 * u));
+    const localX = rMajor * Math.cos(u) - beanIndent * r * Math.sin(u) * Math.sin(u);
+    const localZ = rMajor * kappaElong * Math.sin(u);
 
-    const R = axisR + rhoLocal * Math.cos(theta) + indent;
-    const Z = axisZ + rhoLocal * elong * Math.sin(theta)
-            + 0.18 * state.shaping * r * Math.sin(2 * theta - nzeta);
+    // 将旋转标架 (localX, localZ) 旋回柱坐标 (R, Z) Plane
+    const cR = Math.cos(rotAngle), sR = Math.sin(rotAngle);
+    const dR = localX * cR - localZ * sR;
+    const dZ = localX * sR + localZ * cR;
+
+    const R = axisR + dR;
+    const Z = axisZ + dZ;
 
     const x = R * Math.cos(zeta);
     const y = R * Math.sin(zeta);
@@ -735,72 +732,62 @@
     const nzeta = Nfp * zeta;
     const p = evalStellaratorPoint(s, theta, zeta, true);
 
-    // 磁场模量 |B|(s, theta, zeta):
-    // 包含 1/R 环向效应 + 螺旋磁镜谐波 + 格拉德消奇异准对称项
     const B0 = 3.85;
     const invR = state.R0 / Math.max(1.2, p.R);
-    const mirrorTerm = 0.16 * state.helicity * s * Math.cos(Nfp * theta - nzeta);
-    const nonQuasiTerm = (1.0 - 0.88 * state.gradCancel) * 0.19 * s * Math.cos(2 * theta - nzeta);
+    const mirrorTerm = 0.18 * state.helicity * s * Math.cos(Nfp * theta - nzeta);
+    const nonQuasiTerm = (1.0 - 0.88 * state.gradCancel) * 0.22 * s * Math.cos(2 * theta - nzeta);
     const Bmod = B0 * invR * (1.0 + mirrorTerm + nonQuasiTerm - 0.06 * s * s);
 
-    // 旋转变换 iota(s) 与压强梯度 dp/ds
     const psi = s * s;
     const iota = state.iota0 + (state.iota1 - state.iota0) * psi;
-    const dpds = -4.2 * s * (1.0 - 0.85 * psi); // 峰值在 s ~ 0.6
+    const dpds = -4.2 * s * (1.0 - 0.85 * psi);
 
-    // 格拉德磁微分方程 (MDE): B·∇(J_||/B) = -dp/dψ (B × ∇ψ)·∇(1/B²)
-    // 小分母共振因子: D_{m,n}(s) = m * iota(s) - n * Nfp (主共振 m=Nfp, n=1 => iota = 1.0)
     const denom = Nfp * (iota - 1.0);
-    // 当 gradCancel = 1 时，驱动谐波 (1/B²)_{Nfp,Nfp} 在共振面处与 denom 同步消零 (L'Hôpital 极限光滑)
     const regDenom = denom / (denom * denom + 0.0025 + 0.06 * state.gradCancel);
     const Jpar = -dpds * (
-      0.55 * Math.cos(theta) // 经典托卡马克偶极 Pfirsch-Schlüter 流
-      + 0.35 * (1.0 - 0.82 * state.gradCancel + 4.5 * state.islandAmp) * regDenom * Math.cos(Nfp * theta - nzeta)
+      0.55 * Math.cos(theta)
+      + 0.38 * (1.0 - 0.82 * state.gradCancel + 4.5 * state.islandAmp) * regDenom * Math.cos(Nfp * theta - nzeta)
     );
 
-    // 压强梯度模量 |∇p| (受截面豆形压缩调制)
-    const fluxCompression = 1.0 + 0.42 * state.shaping * Math.cos(theta - nzeta) + 0.25 * Math.cos(2 * theta - nzeta);
+    const fluxCompression = 1.0 + 0.45 * state.shaping * Math.cos(theta - 0.5 * nzeta) + 0.25 * Math.cos(2 * theta - nzeta);
     const GradP = Math.abs(dpds) * fluxCompression;
 
-    // 测地与法曲率合成指标 κ
-    const Curv = (state.R0 - p.R) / state.R0 + 0.55 * state.helicity * Math.cos(theta - nzeta)
-               + 0.38 * state.shaping * Math.cos(3 * theta - nzeta);
+    const Curv = (state.R0 - p.R) / state.R0 + 0.58 * state.helicity * Math.cos(theta - nzeta)
+               + 0.40 * state.shaping * Math.cos(3 * theta - nzeta);
 
     return { Bmod, Jpar, GradP, Curv, p };
   }
 
-  // Colorbar 伪彩色映射 (0..1 -> RGB)
   function colormap(t) {
     const u = Math.max(0, Math.min(1, t));
-    // 5-stop plasma/scientific ramp: Deep Blue -> Cyan -> Emerald -> Amber -> Magenta-Red
     let r, g, b;
     if (u < 0.25) {
       const k = u / 0.25;
-      r = 25 * (1 - k) + 0 * k;
-      g = 52 * (1 - k) + 215 * k;
-      b = 145 * (1 - k) + 255 * k;
+      r = 28 * (1 - k) + 0 * k;
+      g = 64 * (1 - k) + 215 * k;
+      b = 185 * (1 - k) + 255 * k;
     } else if (u < 0.5) {
       const k = (u - 0.25) / 0.25;
       r = 0 * (1 - k) + 16 * k;
-      g = 215 * (1 - k) + 250 * k;
-      b = 255 * (1 - k) + 150 * k;
+      g = 215 * (1 - k) + 245 * k;
+      b = 255 * (1 - k) + 145 * k;
     } else if (u < 0.75) {
       const k = (u - 0.5) / 0.25;
       r = 16 * (1 - k) + 255 * k;
-      g = 250 * (1 - k) + 195 * k;
-      b = 150 * (1 - k) + 15 * k;
+      g = 245 * (1 - k) + 190 * k;
+      b = 145 * (1 - k) + 18 * k;
     } else {
       const k = (u - 0.75) / 0.25;
       r = 255 * (1 - k) + 255 * k;
-      g = 195 * (1 - k) + 42 * k;
-      b = 15 * (1 - k) + 109 * k;
+      g = 190 * (1 - k) + 42 * k;
+      b = 18 * (1 - k) + 109 * k;
     }
     return [r | 0, g | 0, b | 0];
   }
 
   function normalizeFieldValue(phys) {
     switch (state.fieldMode) {
-      case 'Bmod': return (phys.Bmod - 2.25) / (5.55 - 2.25);
+      case 'Bmod': return (phys.Bmod - 2.20) / (5.55 - 2.20);
       case 'Jpar': return (phys.Jpar + 2.4) / 4.8;
       case 'GradP': return phys.GradP / 2.2;
       case 'Curv': return (phys.Curv + 0.85) / 1.7;
@@ -809,22 +796,22 @@
   }
 
   // =========================================================================
-  // 4. 生成三维网格、非平面模块化超导线圈、RK4 磁力线与 α 粒子香蕉轨道
+  // 4. 构建不透明实心阶梯嵌套磁面 + 实心横截面端盖 + 4面体立体超导线圈 + 磁力线
   // =========================================================================
   let meshData = {
-    outerQuads: [],
-    innerLoops: [],
-    coils: [],
-    fieldLines: [],
-    axisCurve: []
+    surfaceQuads: [],
+    endCapPolys: [],
+    coilBoxes: [],
+    fieldLineSegs: [],
+    axisSegs: [],
+    slicerSegs: []
   };
 
-  // 初始化 28 颗聚变 α 粒子 (含通行粒子 Passing 与磁镜捕获香蕉轨道 Trapped Banana)
   const alphaParticles = [];
-  for (let i = 0; i < 28; i++) {
+  for (let i = 0; i < 24; i++) {
     const trapped = (i % 3 === 0);
     alphaParticles.push({
-      s: 0.38 + 0.52 * ((i * 0.6180339) % 1),
+      s: 0.42 + 0.56 * ((i * 0.6180339) % 1),
       theta: (i * 2.39996) % (Math.PI * 2),
       zeta: (i * 1.17) % (Math.PI * 2),
       vPar: trapped ? 0.55 : (i % 2 === 0 ? 1.35 : -1.25),
@@ -834,42 +821,50 @@
     });
   }
 
+  // 计算角度 a 相对于中心角 a0 的最小有符号角差 [-PI, PI]
+  function angleDiff(a, a0) {
+    let d = a - a0;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+
   function rebuildGeometry() {
     const Nfp = state.Nfp;
-
-    // 4.1 磁轴闭合空间曲线 (Magnetic Axis)
-    const axisCurve = [];
-    const nAxis = 180;
-    for (let i = 0; i <= nAxis; i++) {
-      const zeta = (i / nAxis) * Math.PI * 2;
-      axisCurve.push(evalStellaratorPoint(0.0, 0.0, zeta, false));
-    }
-
-    // 4.2 最外层闭合磁面 (LCFS, s = 0.96) + 内部剖面露出层 (s = 0.64, s = 0.34)
-    const outerQuads = [];
-    const nZeta = 90;
-    const nTheta = 34;
-
-    const surfaces = state.showNested
-      ? [
-          { s: 0.96, alpha: 0.90, fullToroidal: false },
-          { s: 0.64, alpha: 0.78, fullToroidal: true },
-          { s: 0.34, alpha: 0.88, fullToroidal: true }
-        ]
-      : [{ s: 0.96, alpha: 0.92, fullToroidal: true }];
-
     const zeta0Rad = (state.zeta0Deg * Math.PI) / 180;
-    const cutSpanRad = ((state.coilCutDeg * 0.72) * Math.PI) / 180;
+    const cutRad = (state.coilCutDeg * Math.PI) / 180;
 
-    for (let sIdx = 0; sIdx < surfaces.length; sIdx++) {
-      const surf = surfaces[sIdx];
+    // -----------------------------------------------------------------------
+    // 4.1 阶梯剥离式三层不透明等磁通面 (Stepped Cutaway Opaque Nested Surfaces)
+    //     彻底消灭“半透明塑料大肠”伪影：每一层都是 100% 不透明实心网格，
+    //     外层 s=0.98 切开 [-0.45*cut, +0.45*cut] 露出中层 s=0.68；
+    //     中层 s=0.68 切开 [-0.24*cut, +0.24*cut] 露出内芯 s=0.38；
+    //     内芯 s=0.38 在 ζ = ζ0 处切开一个小口露出最中心的发光磁轴！
+    // -----------------------------------------------------------------------
+    const surfaceQuads = [];
+    const endCapPolys = [];
+    const nZeta = 110;
+    const nTheta = 36;
+
+    const layers = state.showNested
+      ? [
+          { s: 0.98, cutHalf: cutRad * 0.44, baseTint: 1.0, rimColor: '#00e5ff' },
+          { s: 0.66, cutHalf: cutRad * 0.24, baseTint: 0.94, rimColor: '#ffbf00' },
+          { s: 0.36, cutHalf: cutRad * 0.09, baseTint: 0.90, rimColor: '#ff3d81' }
+        ]
+      : [
+          { s: 0.98, cutHalf: cutRad * 0.35, baseTint: 1.0, rimColor: '#00e5ff' }
+        ];
+
+    for (let lIdx = 0; lIdx < layers.length; lIdx++) {
+      const layer = layers[lIdx];
       const grid = [];
       for (let iz = 0; iz <= nZeta; iz++) {
         const zeta = (iz / nZeta) * Math.PI * 2;
         const row = [];
         for (let it = 0; it <= nTheta; it++) {
           const theta = (it / nTheta) * Math.PI * 2;
-          const phys = evalSurfacePhysics(surf.s, theta, zeta);
+          const phys = evalSurfacePhysics(layer.s, theta, zeta);
           const normVal = normalizeFieldValue(phys);
           row.push({ pt: phys.p, normVal });
         }
@@ -878,26 +873,17 @@
 
       for (let iz = 0; iz < nZeta; iz++) {
         const zetaMid = ((iz + 0.5) / nZeta) * Math.PI * 2;
-        // 若启用嵌套层，外层在激光切面附近让出一个观察切口露出内部 s=0.64 和 s=0.34 磁面
-        if (!surf.fullToroidal && state.showNested) {
-          let dZ = Math.abs(Math.atan2(Math.sin(zetaMid - zeta0Rad), Math.cos(zetaMid - zeta0Rad)));
-          if (dZ < cutSpanRad * 0.45) continue;
-        }
-        if (sIdx === 1 && state.showNested) {
-          let dZ = Math.abs(Math.atan2(Math.sin(zetaMid - zeta0Rad), Math.cos(zetaMid - zeta0Rad)));
-          if (dZ < cutSpanRad * 0.24) continue;
-        }
+        const dZ = Math.abs(angleDiff(zetaMid, zeta0Rad));
+
+        // 严格只渲染可见区段：如果在外层已覆盖的区域，内层不重复生成面片（大幅提速且杜绝Z闪烁）
+        if (dZ < layer.cutHalf) continue;
+        if (lIdx > 0 && dZ > layers[lIdx - 1].cutHalf + 0.08) continue;
 
         for (let it = 0; it < nTheta; it++) {
           const p00 = grid[iz][it];
           const p10 = grid[iz + 1][it];
           const p11 = grid[iz + 1][it + 1];
           const p01 = grid[iz][it + 1];
-
-          // 法向量与面中心
-          const cx = 0.25 * (p00.pt.x + p10.pt.x + p11.pt.x + p01.pt.x);
-          const cy = 0.25 * (p00.pt.y + p10.pt.y + p11.pt.y + p01.pt.y);
-          const cz = 0.25 * (p00.pt.z + p10.pt.z + p11.pt.z + p01.pt.z);
 
           const ux = p10.pt.x - p00.pt.x, uy = p10.pt.y - p00.pt.y, uz = p10.pt.z - p00.pt.z;
           const vx = p01.pt.x - p00.pt.x, vy = p01.pt.y - p00.pt.y, vz = p01.pt.z - p00.pt.z;
@@ -910,83 +896,187 @@
           const avgVal = 0.25 * (p00.normVal + p10.normVal + p11.normVal + p01.normVal);
           const rgb = colormap(avgVal);
 
-          outerQuads.push({
+          surfaceQuads.push({
             v0: p00.pt, v1: p10.pt, v2: p11.pt, v3: p01.pt,
-            cx, cy, cz, nx, ny, nz,
+            nx, ny, nz,
             rgb,
-            alpha: surf.alpha,
-            sIdx
+            lIdx
           });
+        }
+      }
+
+      // 在每一层的两个切口断面 (zeta = zeta0 ± cutHalf) 生成实心环形横截面端盖 (Solid Annular End-Cap)!
+      if (state.showSlicer && layer.cutHalf > 0.02) {
+        const sInner = (lIdx < layers.length - 1) ? layers[lIdx + 1].s : 0.0;
+        const capZetas = [zeta0Rad - layer.cutHalf, zeta0Rad + layer.cutHalf];
+        for (const zCap of capZetas) {
+          for (let it = 0; it < nTheta; it++) {
+            const th0 = (it / nTheta) * Math.PI * 2;
+            const th1 = ((it + 1) / nTheta) * Math.PI * 2;
+            const out0 = evalStellaratorPoint(layer.s, th0, zCap, true);
+            const out1 = evalStellaratorPoint(layer.s, th1, zCap, true);
+            const in1  = evalStellaratorPoint(sInner,  th1, zCap, true);
+            const in0  = evalStellaratorPoint(sInner,  th0, zCap, true);
+
+            const rgb = colormap(1.0 - 0.78 * layer.s);
+            endCapPolys.push({
+              v0: out0, v1: out1, v2: in1, v3: in0,
+              rgb,
+              rimColor: layer.rimColor
+            });
+          }
         }
       }
     }
 
-    // 4.3 40 组三维非平面模块化超导线圈 (Non-Planar Modular Coils via Regcoil Current Potential)
-    // 绕线流形 s_coil = 1.30, 电流势等值线: zeta_coil(theta) = zeta_k + sum c_m sin(m*theta - Nfp*zeta_k)
-    const coils = [];
-    const totalCoils = Nfp * 8; // 每个场周期 8 组非平面模块化线圈
-    const coilSegs = 44;
+    // -----------------------------------------------------------------------
+    // 4.2 40 组真 3D 四面体立体非平面模块化超导线圈 (3D Extruded Box Coils)
+    //     每根线圈具有径向厚度 dr 和环向宽度 dz，包含外壁、内壁、两侧壁 4 个立体受光面！
+    // -----------------------------------------------------------------------
+    const coilBoxes = [];
+    const totalCoils = Nfp * 8;
+    const coilSegs = 40;
+    const cutHalfCoil = cutRad * 0.52;
 
     for (let k = 0; k < totalCoils; k++) {
       const zetaBase = (k / totalCoils) * Math.PI * 2;
-      // 检查是否在解剖隐藏窗口内 (以 zeta0Rad 为中心)
-      const dAngle = Math.abs(Math.atan2(Math.sin(zetaBase - zeta0Rad), Math.cos(zetaBase - zeta0Rad)));
-      const cutHalfRad = (state.coilCutDeg * 0.5 * Math.PI) / 180;
-      if (dAngle < cutHalfRad) continue;
+      if (Math.abs(angleDiff(zetaBase, zeta0Rad)) < cutHalfCoil) continue;
 
-      const pts = [];
+      const ring = [];
       for (let i = 0; i <= coilSegs; i++) {
         const theta = (i / coilSegs) * Math.PI * 2;
-        // 电流势反演的非平面环向扭摆 Δζ(θ): 产生恒星器所需的螺旋场与旋转变换
+        // 电流势反演的非平面三维扭摆 Δζ(θ)
         const warpZeta = zetaBase
-          + (0.19 * state.helicity / (Nfp / 5)) * Math.sin(theta - Nfp * zetaBase)
-          + (0.11 * state.shaping / (Nfp / 5)) * Math.sin(2 * theta - Nfp * zetaBase)
-          - 0.045 * state.shaping * Math.sin(3 * theta - 2 * Nfp * zetaBase);
+          + (0.22 * state.helicity / (Nfp / 5)) * Math.sin(theta - Nfp * zetaBase)
+          + (0.14 * state.shaping / (Nfp / 5)) * Math.sin(2 * theta - Nfp * zetaBase)
+          - 0.05 * state.shaping * Math.sin(3 * theta - 2 * Nfp * zetaBase);
 
-        const pIn = evalStellaratorPoint(1.25, theta, warpZeta, false);
-        const pOut = evalStellaratorPoint(1.38, theta, warpZeta, false);
-        pts.push({ pIn, pOut, theta, warpZeta });
+        const dzWidth = 0.022; // 线圈箱体环向半宽
+        const pInL  = evalStellaratorPoint(1.22, theta, warpZeta - dzWidth, false);
+        const pInR  = evalStellaratorPoint(1.22, theta, warpZeta + dzWidth, false);
+        const pOutL = evalStellaratorPoint(1.38, theta, warpZeta - dzWidth, false);
+        const pOutR = evalStellaratorPoint(1.38, theta, warpZeta + dzWidth, false);
+        ring.push({ pInL, pInR, pOutL, pOutR, theta });
       }
-      coils.push({ k, zetaBase, pts });
+
+      for (let i = 0; i < coilSegs; i++) {
+        const a = ring[i], b = ring[i + 1];
+        const shadeWave = 0.65 + 0.35 * Math.cos(a.theta - zetaBase);
+        // 外壁面 (Outer Casing)
+        coilBoxes.push({
+          v0: a.pOutL, v1: a.pOutR, v2: b.pOutR, v3: b.pOutL,
+          faceType: 'outer', shadeWave
+        });
+        // 左侧壁面 (Left Side Wall)
+        coilBoxes.push({
+          v0: a.pInL, v1: a.pOutL, v2: b.pOutL, v3: b.pInL,
+          faceType: 'side', shadeWave
+        });
+        // 右侧壁面 (Right Side Wall)
+        coilBoxes.push({
+          v0: a.pOutR, v1: a.pInR, v2: b.pInR, v3: b.pOutR,
+          faceType: 'side', shadeWave
+        });
+        // 内壁超导槽 (Inner Superconducting Channel)
+        coilBoxes.push({
+          v0: a.pInR, v1: a.pInL, v2: b.pInL, v3: b.pInR,
+          faceType: 'inner', shadeWave
+        });
+      }
     }
 
-    // 4.4 四阶龙格-库塔 (RK4) 磁力线追踪: dθ/dζ = ι(s) + δB^θ / B^ζ
-    const fieldLines = [];
+    // -----------------------------------------------------------------------
+    // 4.3 三维螺旋磁轴分段 (参与全局 Z-Buffer 深度排序，绝不穿墙!)
+    // -----------------------------------------------------------------------
+    const axisSegs = [];
+    const nAxis = 180;
+    let prevAxisPt = evalStellaratorPoint(0.0, 0.0, 0.0, false);
+    for (let i = 1; i <= nAxis; i++) {
+      const zeta = (i / nAxis) * Math.PI * 2;
+      const curPt = evalStellaratorPoint(0.0, 0.0, zeta, false);
+      axisSegs.push({ p0: prevAxisPt, p1: curPt });
+      prevAxisPt = curPt;
+    }
+
+    // -----------------------------------------------------------------------
+    // 4.4 四阶龙格-库塔 (RK4) 磁力线分段 (紧贴各自磁面外侧 +0.015，参与全局深度排序!)
+    // -----------------------------------------------------------------------
+    const fieldLineSegs = [];
     const lineConfigs = [
-      { s0: 0.97, color: '#00f0ff', steps: 320 },
-      { s0: 0.65, color: '#ffbf00', steps: 280 }
+      { s0: 0.995, color: '#00f7ff', width: 2.0, steps: 340, cutHalf: cutRad * 0.44 },
+      { s0: 0.675, color: '#ffbf00', width: 1.9, steps: 280, cutHalf: cutRad * 0.24 },
+      { s0: 0.375, color: '#ff3d81', width: 1.9, steps: 240, cutHalf: cutRad * 0.09 }
     ];
+
     for (let lc = 0; lc < lineConfigs.length; lc++) {
       const cfg = lineConfigs[lc];
+      if (!state.showNested && lc > 0) continue;
       const psi0 = cfg.s0 * cfg.s0;
       const iota = state.iota0 + (state.iota1 - state.iota0) * psi0;
-      const linePts = [];
-      let theta = lc * 1.2;
-      const dZeta = (Math.PI * 2 * 3) / cfg.steps; // 绕环 3 圈展示磁力线缠绕
-      for (let i = 0; i <= cfg.steps; i++) {
+      let theta = lc * 1.1;
+      const dZeta = (Math.PI * 2 * 2) / cfg.steps;
+      let prevPt = evalStellaratorPoint(cfg.s0, theta, 0, true);
+
+      for (let i = 1; i <= cfg.steps; i++) {
         const zeta = i * dZeta;
-        // RK4 integration of dtheta/dzeta
-        const k1 = iota + 0.08 * state.shaping * Math.cos(theta - Nfp * zeta);
-        const k2 = iota + 0.08 * state.shaping * Math.cos((theta + 0.5 * dZeta * k1) - Nfp * (zeta + 0.5 * dZeta));
+        const k1 = iota + 0.09 * state.shaping * Math.cos(theta - Nfp * zeta);
+        const k2 = iota + 0.09 * state.shaping * Math.cos((theta + 0.5 * dZeta * k1) - Nfp * (zeta + 0.5 * dZeta));
         theta += dZeta * k2;
-        const pt = evalStellaratorPoint(cfg.s0, theta, zeta, true);
-        linePts.push(pt);
+        const curPt = evalStellaratorPoint(cfg.s0, theta, zeta, true);
+
+        const dZ = Math.abs(angleDiff(zeta, zeta0Rad));
+        // 只在该层磁面暴露的区间显示其表面的磁力线
+        let visible = true;
+        if (lc === 0 && dZ < cfg.cutHalf) visible = false;
+        if (lc === 1 && (dZ < cfg.cutHalf || dZ > layers[0].cutHalf)) visible = false;
+        if (lc === 2 && (dZ < cfg.cutHalf || dZ > layers[1].cutHalf)) visible = false;
+
+        if (visible) {
+          fieldLineSegs.push({
+            p0: prevPt,
+            p1: curPt,
+            color: cfg.color,
+            width: cfg.width
+          });
+        }
+        prevPt = curPt;
       }
-      fieldLines.push({ color: cfg.color, pts: linePts });
     }
 
-    meshData.outerQuads = outerQuads;
-    meshData.coils = coils;
-    meshData.fieldLines = fieldLines;
-    meshData.axisCurve = axisCurve;
+    // -----------------------------------------------------------------------
+    // 4.5 激光庞加莱切面环分段 (@ ζ = ζ_0，同样参与全局 Z 排序)
+    // -----------------------------------------------------------------------
+    const slicerSegs = [];
+    const ringS = [0.36, 0.66, 0.98, 1.18];
+    const ringColors = ['#ff3d81', '#00ff9d', '#ffbf00', '#00e5ff'];
+    for (let rIdx = 0; rIdx < ringS.length; rIdx++) {
+      const sVal = ringS[rIdx];
+      const col = ringColors[rIdx];
+      const segs = 54;
+      let prevP = evalStellaratorPoint(sVal, 0, zeta0Rad, true);
+      for (let i = 1; i <= segs; i++) {
+        const th = (i / segs) * Math.PI * 2;
+        const curP = evalStellaratorPoint(sVal, th, zeta0Rad, true);
+        slicerSegs.push({
+          p0: prevP,
+          p1: curP,
+          color: col,
+          width: rIdx >= 2 ? 2.4 : 1.7
+        });
+        prevP = curP;
+      }
+    }
+
+    meshData.surfaceQuads = surfaceQuads;
+    meshData.endCapPolys = endCapPolys;
+    meshData.coilBoxes = coilBoxes;
+    meshData.fieldLineSegs = fieldLineSegs;
+    meshData.axisSegs = axisSegs;
+    meshData.slicerSegs = slicerSegs;
   }
 
   // =========================================================================
   // 5. 右侧诊断面板 1: 实时庞加莱截面 (Poincaré Map at ζ = ζ_0)
-  //    通过追踪不同磁通面 s_j 在多个场周期上的穿刺点 (R, Z)，精确绘出：
-  //    - 光滑嵌套 KAM 磁面
-  //    - m=Nfp, n=Nfp 有理面上的 N_fp 个共振磁岛 (含 O-point 与 X-point 分界线)
-  //    - Chirikov 磁岛重叠区的混沌随机穿刺点
   // =========================================================================
   const poincareCanvas = document.getElementById('poincareCanvas');
   const pCtx = poincareCanvas.getContext('2d');
@@ -996,7 +1086,6 @@
     const H = poincareCanvas.height;
     pCtx.clearRect(0, 0, W, H);
 
-    // 背景坐标网格
     pCtx.strokeStyle = 'rgba(0, 229, 255, 0.09)';
     pCtx.lineWidth = 1;
     for (let x = 20; x < W; x += 40) {
@@ -1009,8 +1098,7 @@
     const zeta0 = (state.zeta0Deg * Math.PI) / 180;
     const axisPt = evalStellaratorPoint(0.0, 0.0, zeta0, false);
 
-    // 坐标缩放: 将 (R - axisR, Z - axisZ) 映射到画布中心
-    const scale = Math.min(W, H) / (2.55 * state.a0);
+    const scale = Math.min(W, H) / (2.65 * state.a0);
     const cx = W * 0.5;
     const cy = H * 0.5;
 
@@ -1019,7 +1107,6 @@
       cy - (Z - axisPt.axisZ) * scale
     ];
 
-    // 共振有理面位置 s_res: iota(s_res) = 1.0
     const dIotaTotal = state.iota1 - state.iota0;
     let sRes = 0.72;
     if (Math.abs(dIotaTotal) > 1e-4) {
@@ -1030,27 +1117,22 @@
     }
 
     const Nfp = state.Nfp;
-    const mIsland = Nfp; // 主共振磁岛数
+    const mIsland = Nfp;
 
-    // 1) 绘制非共振区的光滑 KAM 磁通面穿刺点轨迹
     const numSurfaces = 13;
     for (let j = 1; j <= numSurfaces; j++) {
       const s0 = (j / numSurfaces) * 0.98;
       const distToRes = Math.abs(s0 - sRes);
       const islandWidth = 0.42 * Math.sqrt(Math.max(0, state.islandAmp));
 
-      // 如果该磁面已经被共振磁岛吞没，跳过常规环面，改由下方磁岛哈密顿量等高线绘制
       if (state.islandAmp > 0.002 && distToRes < islandWidth * 0.85) continue;
 
-      const uCol = s0;
-      const rgb = colormap(1.0 - 0.85 * uCol);
-      pCtx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.92)`;
+      const rgb = colormap(1.0 - 0.85 * s0);
+      pCtx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.94)`;
 
-      // 判断是否处于外层 Chirikov 混沌海 (s0 > 0.72 且 chaosAmp > 0)
       const isChaos = state.chaosAmp > 0.005 && s0 > 0.66;
       const nPunctures = isChaos ? 130 : 95;
 
-      // 绕行标准映射 (Symplectic Chirikov-like Poincaré map in (s, theta))
       let sCur = s0;
       let thCur = j * 0.47;
       for (let p = 0; p < nPunctures; p++) {
@@ -1058,7 +1140,6 @@
         const iotaCur = state.iota0 + (state.iota1 - state.iota0) * psiCur;
 
         if (isChaos) {
-          // 辛映射标准步: 包含主共振 + 次级共振产生随机海穿刺
           const kick = state.islandAmp * 0.35 * Math.sin(mIsland * thCur - Nfp * zeta0)
                      + state.chaosAmp * 0.55 * Math.sin((mIsland + 1) * thCur - Nfp * zeta0 + 0.9)
                      + state.chaosAmp * 0.42 * Math.sin((mIsland - 1) * thCur + 0.4);
@@ -1066,7 +1147,6 @@
           thCur = (thCur + (2 * Math.PI / Nfp) * (iotaCur + 0.8 * kick)) % (Math.PI * 2);
         } else {
           thCur = (p / nPunctures) * Math.PI * 2;
-          // 近共振面受哈密顿微扰变形
           const dS = s0 - sRes;
           const deform = (state.islandAmp * 0.22 * dS) / (dS * dS + 0.012) * Math.cos(mIsland * thCur - Nfp * zeta0);
           sCur = s0 + deform;
@@ -1074,24 +1154,20 @@
 
         const pt = evalStellaratorPoint(sCur, thCur, zeta0, false);
         const [sx, sy] = toScreen(pt.R, pt.Z);
-        pCtx.fillRect(sx - 1.1, sy - 1.1, 2.2, 2.2);
+        pCtx.fillRect(sx - 1.15, sy - 1.15, 2.3, 2.3);
       }
     }
 
-    // 2) 当开启有理面共振摄动 (islandAmp > 0.002) 时，精确绘制 m = Nfp 个磁岛链 (含内部闭合轨道、O点、X点分界线)
     if (state.islandAmp > 0.002) {
       const halfW = 0.38 * Math.sqrt(state.islandAmp);
       for (let k = 0; k < mIsland; k++) {
-        // O-point 极向角 (随环向截面角 zeta0 螺旋旋转!)
         const thetaO = (Nfp * zeta0 + 2 * Math.PI * k) / mIsland;
-        // X-point 鞍点极向角
         const thetaX = (Nfp * zeta0 + 2 * Math.PI * (k + 0.5)) / mIsland;
 
-        // 绘制磁岛内部 3 层嵌套闭合磁面围绕 O-point
         for (let ring = 1; ring <= 3; ring++) {
           const frac = ring / 3.2;
-          pCtx.strokeStyle = ring === 3 ? 'rgba(255, 61, 129, 0.92)' : 'rgba(255, 191, 0, 0.85)';
-          pCtx.lineWidth = ring === 3 ? 1.4 : 1.1;
+          pCtx.strokeStyle = ring === 3 ? 'rgba(255, 61, 129, 0.94)' : 'rgba(255, 191, 0, 0.88)';
+          pCtx.lineWidth = ring === 3 ? 1.5 : 1.1;
           pCtx.beginPath();
           const nPts = 42;
           for (let i = 0; i <= nPts; i++) {
@@ -1106,7 +1182,6 @@
           pCtx.stroke();
         }
 
-        // 标注 O-point (青色亮芯) 与 X-point (品红十字鞍点)
         const ptO = evalStellaratorPoint(sRes, thetaO, zeta0, false);
         const [ox, oy] = toScreen(ptO.R, ptO.Z);
         pCtx.fillStyle = '#00ff9d';
@@ -1123,7 +1198,6 @@
       }
     }
 
-    // 3) 磁轴中心十字靶标
     const [ax, ay] = toScreen(axisPt.R, axisPt.Z);
     pCtx.strokeStyle = '#ffffff';
     pCtx.lineWidth = 1.5;
@@ -1133,7 +1207,6 @@
     pCtx.moveTo(ax, ay - 6); pCtx.lineTo(ax, ay + 6);
     pCtx.stroke();
 
-    // 截面形状相角提示
     const phaseInPeriod = ((state.zeta0Deg * Nfp) % 360 + 360) % 360;
     let shapeName = '斜扭过渡截面';
     if (phaseInPeriod < 35 || phaseInPeriod > 325) shapeName = '新月豆形截面 (Bean)';
@@ -1172,7 +1245,6 @@
     const pw = W - padL - padR;
     const ph = H - padT - padB;
 
-    // 坐标框
     iCtx.strokeStyle = 'rgba(255,255,255,0.16)';
     iCtx.lineWidth = 1;
     iCtx.strokeRect(padL, padT, pw, ph);
@@ -1181,7 +1253,6 @@
     const yOfIota = (val) => padT + ph * (1 - (val - iotaMin) / (iotaMax - iotaMin));
     const xOfS = (s) => padL + pw * s;
 
-    // 绘制有理共振水平参考线: iota = 1.00 (n/m = 5/5) 与 iota = 5/6 = 0.833
     const rationals = [
       { val: 1.00, label: `${state.Nfp}/${state.Nfp} = 1.00 (主共振)`, color: 'rgba(255, 61, 129, 0.65)' },
       { val: state.Nfp / (state.Nfp + 1), label: `${state.Nfp}/${state.Nfp + 1}`, color: 'rgba(255, 191, 0, 0.45)' }
@@ -1198,13 +1269,11 @@
       iCtx.fillText(rat.label, padL + 6, ry - 4);
     }
 
-    // 绘制格拉德小分母奇异电流响应曲线 |J_||,res(s)| (背景半透明柱/阴影)
     iCtx.beginPath();
     for (let i = 0; i <= 100; i++) {
       const s = i / 100;
       const iota = state.iota0 + (state.iota1 - state.iota0) * s * s;
       const denom = Math.abs(state.Nfp * (iota - 1.0));
-      // 当 gradCancel = 1 时，分子与分母同步消零；当 islandAmp > 0 时，奇异峰暴涨
       const numer = (1.0 - 0.96 * state.gradCancel) * 0.12 + state.islandAmp * 2.4;
       const amp = Math.min(0.92, numer / (denom + 0.018));
       const sx = xOfS(s);
@@ -1219,7 +1288,6 @@
       : 'rgba(0, 255, 157, 0.14)';
     iCtx.fill();
 
-    // 绘制 ι(s) 旋转变换主曲线 (若在有理面撕裂出磁岛，则在共振面处出现平坦阶梯 Flattening)
     iCtx.strokeStyle = '#00e5ff';
     iCtx.lineWidth = 2.2;
     iCtx.beginPath();
@@ -1230,7 +1298,7 @@
         const dI = iota - 1.0;
         const wI = 0.25 * Math.sqrt(state.islandAmp);
         if (Math.abs(dI) < wI) {
-          iota = 1.0 + dI * 0.15; // 磁岛内部旋转变换锁相平坦化
+          iota = 1.0 + dI * 0.15;
         }
       }
       const sx = xOfS(s);
@@ -1240,7 +1308,6 @@
     }
     iCtx.stroke();
 
-    // 坐标轴刻度文字
     iCtx.fillStyle = '#94a3b8';
     iCtx.fillText('1.2', 8, yOfIota(1.2) + 3);
     iCtx.fillText('1.0', 8, yOfIota(1.0) + 3);
@@ -1274,21 +1341,20 @@
     const betaPct = (3.8 + 1.4 * state.shaping - 8.0 * state.chaosAmp).toFixed(1);
     document.getElementById('kpiBeta').textContent = `β = ${betaPct}% · M = ${mirrorRatio}`;
 
-    // 右侧底部微分几何实时账本
     const zetaRad = (state.zeta0Deg * Math.PI) / 180;
     const pAxis = evalStellaratorPoint(0, 0, zetaRad, false);
-    const tauAxis = (state.helicity * state.Nfp * 0.42).toFixed(3);
+    const tauAxis = (state.helicity * state.Nfp * 0.48).toFixed(3);
     const wellDepth = (1.6 + 4.8 * state.shaping - 12 * state.chaosAmp).toFixed(2);
 
     document.getElementById('liveDiagBox').innerHTML =
       `<div>• 磁轴实时坐标 @ ζ₀: <span style="color:#00e5ff">R=${pAxis.R.toFixed(3)}m, Z=${pAxis.Z.toFixed(3)}m</span></div>` +
-      `<div>• 磁轴空间挠率 τ(ζ) / 曲率 κ: <span style="color:#ffbf00">τ=${tauAxis} m⁻¹, κ=${(0.32 + 0.25*state.helicity).toFixed(3)} m⁻¹</span></div>` +
+      `<div>• 磁轴空间挠率 τ(ζ) / 曲率 κ: <span style="color:#ffbf00">τ=${tauAxis} m⁻¹, κ=${(0.34 + 0.28*state.helicity).toFixed(3)} m⁻¹</span></div>` +
       `<div>• 磁阱深度 V''(ψ) (MHD 稳定判据): <span style="color:#00ff9d">-${wellDepth}% (磁阱稳定)</span></div>` +
-      `<div>• 模块化超导线圈数: <span style="color:#f1f5f9">${state.Nfp * 8} 组非平面 Nb₃Sn 线圈 (已显 ${meshData.coils.length} 组)</span></div>`;
+      `<div>• 模块化超导磁体: <span style="color:#f1f5f9">${state.Nfp * 8} 组三维扭曲 Nb₃Sn 线圈盒</span></div>`;
   }
 
   // =========================================================================
-  // 8. 主视口 3D 渲染管线 (纯 Canvas 2D 硬件加速画家算法 + 立体光照 + 粒子 + 激光切面)
+  // 8. 主视口统一 Z-Buffer 3D 渲染管线 (所有图元进同一个深度缓冲排序，零穿墙!)
   // =========================================================================
   const glCanvas = document.getElementById('glCanvas');
   const ctx = glCanvas.getContext('2d');
@@ -1306,12 +1372,10 @@
     const cosY = Math.cos(state.camYaw), sinY = Math.sin(state.camYaw);
     const cosP = Math.cos(state.camPitch), sinP = Math.sin(state.camPitch);
 
-    // 绕 Z 轴偏航 (Yaw)
     const x1 = x * cosY - y * sinY;
     const y1 = x * sinY + y * cosY;
     const z1 = z;
 
-    // 绕 X 轴俯仰 (Pitch)
     const x2 = x1;
     const y2 = y1 * cosP - z1 * sinP;
     const z2 = y1 * sinP + z1 * cosP;
@@ -1319,12 +1383,12 @@
     const depth = state.camDist + y2;
     if (depth < 0.4) return null;
 
-    const fov = Math.min(W, H) * 0.92;
+    const fov = Math.min(W, H) * 0.94;
     const scale = fov / depth;
-    const sx = W * 0.48 + state.camPanX + x2 * scale;
+    const sx = W * 0.49 + state.camPanX + x2 * scale;
     const sy = H * 0.52 + state.camPanY - z2 * scale;
 
-    return { sx, sy, depth, scale, nxCam: x2, nyCam: y2, nzCam: z2 };
+    return { sx, sy, depth, scale };
   }
 
   function renderMainScene(dt) {
@@ -1332,11 +1396,11 @@
     const H = window.innerHeight;
     ctx.clearRect(0, 0, W, H);
 
-    // 1) 绘制深空托卡马克/仿星器实验大厅极坐标地坪网格
-    ctx.strokeStyle = 'rgba(0, 229, 255, 0.06)';
+    // 1) 极坐标实验大厅地坪参考环
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.05)';
     ctx.lineWidth = 1;
-    const floorZ = -1.65;
-    for (let r = 1.5; r <= 5.0; r += 1.15) {
+    const floorZ = -1.75;
+    for (let r = 1.6; r <= 5.2; r += 1.2) {
       ctx.beginPath();
       for (let i = 0; i <= 64; i++) {
         const ang = (i / 64) * Math.PI * 2;
@@ -1348,13 +1412,13 @@
       ctx.stroke();
     }
 
-    // 2) 收集所有待深度排序的 3D 图元 (磁面面片 + 非平面超导线圈立体段)
+    // 2) 统一收集所有 3D 图元进入同一个 drawList 排序！
     const drawList = [];
+    const lx = -0.42, ly = -0.68, lz = 0.60; // 主平行光源
 
-    // 2a. 磁面四边形面片
-    const lx = -0.45, ly = -0.65, lz = 0.60; // 主光源方向
-    for (let i = 0; i < meshData.outerQuads.length; i++) {
-      const q = meshData.outerQuads[i];
+    // 2a. 不透明实心阶梯磁面面片 (100% Opaque + Lambert/Specular Lighting)
+    for (let i = 0; i < meshData.surfaceQuads.length; i++) {
+      const q = meshData.surfaceQuads[i];
       const p0 = project3D(q.v0.x, q.v0.y, q.v0.z, W, H);
       const p1 = project3D(q.v1.x, q.v1.y, q.v1.z, W, H);
       const p2 = project3D(q.v2.x, q.v2.y, q.v2.z, W, H);
@@ -1362,58 +1426,222 @@
       if (!p0 || !p1 || !p2 || !p3) continue;
 
       const avgDepth = 0.25 * (p0.depth + p1.depth + p2.depth + p3.depth);
+
+      // 屏幕空间叉积判断面片朝向（内腔壁 vs 外表面）
+      const cross2D = (p1.sx - p0.sx) * (p2.sy - p0.sy) - (p1.sy - p0.sy) * (p2.sx - p0.sx);
+      const isBackFace = cross2D > 0;
+
       const ndotl = Math.abs(q.nx * lx + q.ny * ly + q.nz * lz);
-      const shade = 0.42 + 0.68 * ndotl;
+      const spec = Math.pow(ndotl, 6) * 42;
+      // 如果看到的是切开的磁面内壁，压暗为深邃暖暗色调，突出外壁与横截面端盖！
+      const shade = isBackFace ? (0.26 + 0.22 * ndotl) : (0.46 + 0.58 * ndotl);
 
       drawList.push({
-        type: 'quad',
+        type: 'surfQuad',
         depth: avgDepth,
         p0, p1, p2, p3,
-        r: Math.min(255, (q.rgb[0] * shade) | 0),
-        g: Math.min(255, (q.rgb[1] * shade) | 0),
-        b: Math.min(255, (q.rgb[2] * shade) | 0),
-        alpha: q.alpha,
-        sIdx: q.sIdx
+        r: Math.min(255, (q.rgb[0] * shade + (isBackFace ? 0 : spec)) | 0),
+        g: Math.min(255, (q.rgb[1] * shade + (isBackFace ? 0 : spec)) | 0),
+        b: Math.min(255, (q.rgb[2] * shade + (isBackFace ? 0 : spec)) | 0),
+        isBackFace
       });
     }
 
-    // 2b. 40 组三维非平面模块化超导线圈 (立体内外双轨铜/超导冷屏色带)
+    // 2b. 剖面切口处的实心环形横截面端盖 (Poloidal End-Cap Annuli)
+    for (let i = 0; i < meshData.endCapPolys.length; i++) {
+      const cap = meshData.endCapPolys[i];
+      const p0 = project3D(cap.v0.x, cap.v0.y, cap.v0.z, W, H);
+      const p1 = project3D(cap.v1.x, cap.v1.y, cap.v1.z, W, H);
+      const p2 = project3D(cap.v2.x, cap.v2.y, cap.v2.z, W, H);
+      const p3 = project3D(cap.v3.x, cap.v3.y, cap.v3.z, W, H);
+      if (!p0 || !p1 || !p2 || !p3) continue;
+
+      const avgDepth = 0.25 * (p0.depth + p1.depth + p2.depth + p3.depth) - 0.03;
+      drawList.push({
+        type: 'endCap',
+        depth: avgDepth,
+        p0, p1, p2, p3,
+        r: cap.rgb[0],
+        g: cap.rgb[1],
+        b: cap.rgb[2],
+        rimColor: cap.rimColor
+      });
+    }
+
+    // 2c. 40 组三维立体超导线圈盒 (4-Sided 3D Extruded Coil Casings)
     if (state.showCoils) {
-      for (let c = 0; c < meshData.coils.length; c++) {
-        const coil = meshData.coils[c];
-        const pts = coil.pts;
-        for (let i = 0; i < pts.length - 1; i++) {
-          const a = pts[i], b = pts[i + 1];
-          const pIn0 = project3D(a.pIn.x, a.pIn.y, a.pIn.z, W, H);
-          const pIn1 = project3D(b.pIn.x, b.pIn.y, b.pIn.z, W, H);
-          const pOut1 = project3D(b.pOut.x, b.pOut.y, b.pOut.z, W, H);
-          const pOut0 = project3D(a.pOut.x, a.pOut.y, a.pOut.z, W, H);
-          if (!pIn0 || !pIn1 || !pOut1 || !pOut0) continue;
+      for (let i = 0; i < meshData.coilBoxes.length; i++) {
+        const cb = meshData.coilBoxes[i];
+        const p0 = project3D(cb.v0.x, cb.v0.y, cb.v0.z, W, H);
+        const p1 = project3D(cb.v1.x, cb.v1.y, cb.v1.z, W, H);
+        const p2 = project3D(cb.v2.x, cb.v2.y, cb.v2.z, W, H);
+        const p3 = project3D(cb.v3.x, cb.v3.y, cb.v3.z, W, H);
+        if (!p0 || !p1 || !p2 || !p3) continue;
 
-          const avgDepth = 0.25 * (pIn0.depth + pIn1.depth + pOut1.depth + pOut0.depth);
-          const lightWave = 0.65 + 0.35 * Math.sin(a.theta + coil.zetaBase * 2);
+        const avgDepth = 0.25 * (p0.depth + p1.depth + p2.depth + p3.depth);
+        drawList.push({
+          type: 'coilBox',
+          depth: avgDepth,
+          p0, p1, p2, p3,
+          faceType: cb.faceType,
+          shadeWave: cb.shadeWave
+        });
+      }
+    }
 
+    // 2d. 磁轴 3D 小段 (带真实深度)
+    for (let i = 0; i < meshData.axisSegs.length; i++) {
+      const seg = meshData.axisSegs[i];
+      const p0 = project3D(seg.p0.x, seg.p0.y, seg.p0.z, W, H);
+      const p1 = project3D(seg.p1.x, seg.p1.y, seg.p1.z, W, H);
+      if (!p0 || !p1) continue;
+      drawList.push({
+        type: 'lineSeg',
+        depth: 0.5 * (p0.depth + p1.depth) - 0.04,
+        p0, p1,
+        color: '#ffffff',
+        width: 2.8,
+        glow: true
+      });
+    }
+
+    // 2e. RK4 磁力线 3D 小段 (带真实深度，被前方线圈和磁面自然遮挡!)
+    if (state.showFieldLines) {
+      for (let i = 0; i < meshData.fieldLineSegs.length; i++) {
+        const seg = meshData.fieldLineSegs[i];
+        const p0 = project3D(seg.p0.x, seg.p0.y, seg.p0.z, W, H);
+        const p1 = project3D(seg.p1.x, seg.p1.y, seg.p1.z, W, H);
+        if (!p0 || !p1) continue;
+        drawList.push({
+          type: 'lineSeg',
+          depth: 0.5 * (p0.depth + p1.depth) - 0.05,
+          p0, p1,
+          color: seg.color,
+          width: seg.width,
+          glow: false
+        });
+      }
+    }
+
+    // 2f. 环向激光庞加莱切面环 3D 小段
+    if (state.showSlicer) {
+      for (let i = 0; i < meshData.slicerSegs.length; i++) {
+        const seg = meshData.slicerSegs[i];
+        const p0 = project3D(seg.p0.x, seg.p0.y, seg.p0.z, W, H);
+        const p1 = project3D(seg.p1.x, seg.p1.y, seg.p1.z, W, H);
+        if (!p0 || !p1) continue;
+        drawList.push({
+          type: 'lineSeg',
+          depth: 0.5 * (p0.depth + p1.depth) - 0.06,
+          p0, p1,
+          color: seg.color,
+          width: seg.width,
+          glow: true
+        });
+      }
+    }
+
+    // 2g. 更新并推入 3.5MeV α 粒子导心轨迹
+    if (state.showParticles) {
+      for (let i = 0; i < alphaParticles.length; i++) {
+        const ap = alphaParticles[i];
+        const psi = ap.s * ap.s;
+        const iota = state.iota0 + (state.iota1 - state.iota0) * psi;
+
+        if (ap.trapped) {
+          ap.bouncePhase += dt * 3.2;
+          const vOsc = 0.95 * Math.cos(ap.bouncePhase);
+          ap.zeta = (ap.zeta + dt * vOsc) % (Math.PI * 2);
+          if (ap.zeta < 0) ap.zeta += Math.PI * 2;
+          ap.theta = (ap.theta + dt * vOsc * iota + 0.04 * Math.sin(ap.bouncePhase)) % (Math.PI * 2);
+        } else {
+          ap.zeta = (ap.zeta + dt * ap.vPar) % (Math.PI * 2);
+          if (ap.zeta < 0) ap.zeta += Math.PI * 2;
+          ap.theta = (ap.theta + dt * ap.vPar * iota) % (Math.PI * 2);
+        }
+
+        const curPt = evalStellaratorPoint(ap.s, ap.theta, ap.zeta, true);
+        ap.trail.push(curPt);
+        if (ap.trail.length > 12) ap.trail.shift();
+
+        for (let t = 0; t < ap.trail.length - 1; t++) {
+          const p0 = project3D(ap.trail[t].x, ap.trail[t].y, ap.trail[t].z, W, H);
+          const p1 = project3D(ap.trail[t + 1].x, ap.trail[t + 1].y, ap.trail[t + 1].z, W, H);
+          if (!p0 || !p1) continue;
           drawList.push({
-            type: 'coilSeg',
-            depth: avgDepth,
-            p0: pIn0, p1: pIn1, p2: pOut1, p3: pOut0,
-            lightWave
+            type: 'lineSeg',
+            depth: 0.5 * (p0.depth + p1.depth) - 0.07,
+            p0, p1,
+            color: ap.trapped ? '#ff3d81' : '#00ff9d',
+            width: 2.2,
+            glow: false
+          });
+        }
+
+        const headP = project3D(curPt.x, curPt.y, curPt.z, W, H);
+        if (headP) {
+          drawList.push({
+            type: 'particleHead',
+            depth: headP.depth - 0.08,
+            p: headP,
+            trapped: ap.trapped
           });
         }
       }
     }
 
-    // 画家算法从远到近排序
+    // 3) 全局统一画家算法排序 (从最远 depth 到最近 depth)
     drawList.sort((a, b) => b.depth - a.depth);
 
-    // 3) 逐个绘制磁面与超导线圈
+    // 4) 严格按深度顺序绘制所有 3D 图元
     for (let i = 0; i < drawList.length; i++) {
       const item = drawList[i];
-      if (item.type === 'quad') {
-        ctx.fillStyle = `rgba(${item.r}, ${item.g}, ${item.b}, ${item.alpha})`;
-        ctx.strokeStyle = item.sIdx === 0
-          ? 'rgba(255, 255, 255, 0.11)'
-          : 'rgba(0, 229, 255, 0.22)';
+
+      if (item.type === 'surfQuad') {
+        ctx.fillStyle = `rgb(${item.r}, ${item.g}, ${item.b})`;
+        ctx.strokeStyle = item.isBackFace
+          ? 'rgba(0, 0, 0, 0.28)'
+          : 'rgba(255, 255, 255, 0.14)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(item.p0.sx, item.p0.sy);
+        ctx.lineTo(item.p1.sx, item.p1.sy);
+        ctx.lineTo(item.p2.sx, item.p2.sy);
+        ctx.lineTo(item.p3.sx, item.p3.sy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (item.type === 'endCap') {
+        ctx.fillStyle = `rgb(${item.r}, ${item.g}, ${item.b})`;
+        ctx.strokeStyle = item.rimColor;
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(item.p0.sx, item.p0.sy);
+        ctx.lineTo(item.p1.sx, item.p1.sy);
+        ctx.lineTo(item.p2.sx, item.p2.sy);
+        ctx.lineTo(item.p3.sx, item.p3.sy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (item.type === 'coilBox') {
+        const sw = item.shadeWave;
+        if (item.faceType === 'outer') {
+          const r = (125 + 95 * sw) | 0;
+          const g = (165 + 75 * sw) | 0;
+          const b = (205 + 50 * sw) | 0;
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.strokeStyle = 'rgba(224, 242, 254, 0.65)';
+        } else if (item.faceType === 'side') {
+          const r = (52 + 48 * sw) | 0;
+          const g = (82 + 58 * sw) | 0;
+          const b = (125 + 65 * sw) | 0;
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+        } else {
+          // inner superconducting channel
+          ctx.fillStyle = 'rgb(14, 116, 144)';
+          ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+        }
         ctx.lineWidth = 0.65;
         ctx.beginPath();
         ctx.moveTo(item.p0.sx, item.p0.sy);
@@ -1423,133 +1651,29 @@
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-      } else if (item.type === 'coilSeg') {
-        const lw = item.lightWave;
-        const r = (48 + 145 * lw) | 0;
-        const g = (115 + 115 * lw) | 0;
-        const b = (175 + 80 * lw) | 0;
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.94)`;
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.55)';
-        ctx.lineWidth = 0.85;
+      } else if (item.type === 'lineSeg') {
+        if (item.glow) {
+          ctx.strokeStyle = item.color;
+          ctx.lineWidth = item.width * 2.2;
+          ctx.globalAlpha = 0.25;
+          ctx.beginPath();
+          ctx.moveTo(item.p0.sx, item.p0.sy);
+          ctx.lineTo(item.p1.sx, item.p1.sy);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = item.width;
+        ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(item.p0.sx, item.p0.sy);
         ctx.lineTo(item.p1.sx, item.p1.sy);
-        ctx.lineTo(item.p2.sx, item.p2.sy);
-        ctx.lineTo(item.p3.sx, item.p3.sy);
-        ctx.closePath();
+        ctx.stroke();
+      } else if (item.type === 'particleHead') {
+        ctx.fillStyle = item.trapped ? '#ff3d81' : '#ffffff';
+        ctx.beginPath();
+        ctx.arc(item.p.sx, item.p.sy, 3.0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.stroke();
-      }
-    }
-
-    // 4) 绘制三维螺旋磁轴 (Glowing Magnetic Axis)
-    if (meshData.axisCurve.length > 1) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-      ctx.lineWidth = 2.2;
-      ctx.beginPath();
-      let started = false;
-      for (let i = 0; i < meshData.axisCurve.length; i++) {
-        const pt = meshData.axisCurve[i];
-        const p = project3D(pt.x, pt.y, pt.z, W, H);
-        if (!p) continue;
-        if (!started) { ctx.moveTo(p.sx, p.sy); started = true; }
-        else ctx.lineTo(p.sx, p.sy);
-      }
-      ctx.stroke();
-    }
-
-    // 5) 绘制 RK4 三维缠绕磁力线 (Field Lines)
-    if (state.showFieldLines) {
-      for (let f = 0; f < meshData.fieldLines.length; f++) {
-        const fl = meshData.fieldLines[f];
-        ctx.strokeStyle = fl.color;
-        ctx.lineWidth = 1.65;
-        ctx.beginPath();
-        let started = false;
-        for (let i = 0; i < fl.pts.length; i++) {
-          const pt = fl.pts[i];
-          const p = project3D(pt.x, pt.y, pt.z, W, H);
-          if (!p) continue;
-          if (!started) { ctx.moveTo(p.sx, p.sy); started = true; }
-          else ctx.lineTo(p.sx, p.sy);
-        }
-        ctx.stroke();
-      }
-    }
-
-    // 6) 更新并绘制 3.5 MeV 聚变 α 粒子导心轨迹与磁镜捕获香蕉轨道
-    if (state.showParticles) {
-      for (let i = 0; i < alphaParticles.length; i++) {
-        const ap = alphaParticles[i];
-        const psi = ap.s * ap.s;
-        const iota = state.iota0 + (state.iota1 - state.iota0) * psi;
-
-        if (ap.trapped) {
-          // 磁镜捕获粒子在螺旋磁阱内往复反弹 (Banana Orbit Bounce)
-          ap.bouncePhase += dt * 3.2;
-          const vOsc = 0.95 * Math.cos(ap.bouncePhase);
-          ap.zeta = (ap.zeta + dt * vOsc) % (Math.PI * 2);
-          if (ap.zeta < 0) ap.zeta += Math.PI * 2;
-          ap.theta = (ap.theta + dt * vOsc * iota + 0.04 * Math.sin(ap.bouncePhase)) % (Math.PI * 2);
-        } else {
-          // 通行粒子沿磁力线高速绕行
-          ap.zeta = (ap.zeta + dt * ap.vPar) % (Math.PI * 2);
-          if (ap.zeta < 0) ap.zeta += Math.PI * 2;
-          ap.theta = (ap.theta + dt * ap.vPar * iota) % (Math.PI * 2);
-        }
-
-        const curPt = evalStellaratorPoint(ap.s, ap.theta, ap.zeta, true);
-        ap.trail.push(curPt);
-        if (ap.trail.length > 16) ap.trail.shift();
-
-        // 绘制尾迹
-        if (ap.trail.length > 2) {
-          ctx.strokeStyle = ap.trapped ? 'rgba(255, 61, 129, 0.85)' : 'rgba(0, 255, 157, 0.82)';
-          ctx.lineWidth = 2.0;
-          ctx.beginPath();
-          let st = false;
-          for (let t = 0; t < ap.trail.length; t++) {
-            const tp = project3D(ap.trail[t].x, ap.trail[t].y, ap.trail[t].z, W, H);
-            if (!tp) continue;
-            if (!st) { ctx.moveTo(tp.sx, tp.sy); st = true; }
-            else ctx.lineTo(tp.sx, tp.sy);
-          }
-          ctx.stroke();
-        }
-
-        const headP = project3D(curPt.x, curPt.y, curPt.z, W, H);
-        if (headP) {
-          ctx.fillStyle = ap.trapped ? '#ff3d81' : '#ffffff';
-          ctx.beginPath();
-          ctx.arc(headP.sx, headP.sy, 3.0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-
-    // 7) 绘制环向激光庞加莱切面刀 (Toroidal Poincaré Laser Slicer @ ζ = ζ_0)
-    if (state.showSlicer) {
-      const zeta0 = (state.zeta0Deg * Math.PI) / 180;
-      const rings = [0.34, 0.64, 0.96, 1.18];
-      for (let rIdx = 0; rIdx < rings.length; rIdx++) {
-        const sVal = rings[rIdx];
-        ctx.strokeStyle = rIdx === 3
-          ? 'rgba(0, 229, 255, 0.95)'
-          : rIdx === 2
-            ? 'rgba(255, 191, 0, 0.95)'
-            : 'rgba(0, 255, 157, 0.85)';
-        ctx.lineWidth = rIdx >= 2 ? 2.4 : 1.5;
-        ctx.beginPath();
-        const segs = 56;
-        for (let i = 0; i <= segs; i++) {
-          const th = (i / segs) * Math.PI * 2;
-          const pt = evalStellaratorPoint(sVal, th, zeta0, true);
-          const p = project3D(pt.x, pt.y, pt.z, W, H);
-          if (!p) continue;
-          if (i === 0) ctx.moveTo(p.sx, p.sy);
-          else ctx.lineTo(p.sx, p.sy);
-        }
-        ctx.stroke();
       }
     }
   }
@@ -1559,26 +1683,26 @@
   // =========================================================================
   const presets = {
     grad_counter: {
-      Nfp: 5, helicity: 0.28, shaping: 0.34, iota0: 0.855, iota1: 1.085,
+      Nfp: 5, helicity: 0.36, shaping: 0.42, iota0: 0.855, iota1: 1.085,
       islandAmp: 0.000, chaosAmp: 0.000, gradCancel: 1.0,
       desc: `<strong>【格拉德猜想 (Grad's Conjecture, 1967) 三维光滑反例态】</strong>
       当磁面穿越有理共振面 ι(ψ) = 5/5 = 1.00 时，通过三维微分几何度规张量 g_{ij} 的螺旋曲率配平，令磁微分方程右端驱动项 (1/B²)_{5,5} 在共振面处与小分母 (5ι − 5) 同步消零，<strong>实现无磁岛撕裂、无奇异电流片的三维非轴对称光滑 MHD 平衡！</strong>`
     },
     w7x_qi: {
-      Nfp: 5, helicity: 0.33, shaping: 0.42, iota0: 0.840, iota1: 0.975,
+      Nfp: 5, helicity: 0.40, shaping: 0.48, iota0: 0.840, iota1: 0.975,
       islandAmp: 0.000, chaosAmp: 0.000, gradCancel: 0.95,
       desc: `<strong>【Wendelstein 7-X 准等动力 (Quasi-Isodynamic) 超导位形】</strong>
-      德国 W7-X 仿星器采用 5 场周期 (N_fp=5) + 40/50 组非平面模块化 NbTi 超导线圈，将旋转变换剖面压在低剪切区间 ι ∈ [5/6, 5/5]，最小化新经典输运与 Pfirsch-Schlüter 平行电流，捕获 α 粒子在螺旋磁镜内形成闭合极向漂移。`
+      德国 W7-X 仿星器采用 5 场周期 (N_fp=5) + 40/50 组非平面模块化超导线圈盒，将旋转变换剖面压在低剪切区间 ι ∈ [5/6, 5/5]，最小化新经典输运与 Pfirsch-Schlüter 平行电流，捕获 α 粒子在螺旋磁镜内形成闭合极向漂移。`
     },
     island_5_5: {
-      Nfp: 5, helicity: 0.26, shaping: 0.32, iota0: 0.820, iota1: 1.150,
-      islandAmp: 0.052, chaosAmp: 0.000, gradCancel: 0.0,
+      Nfp: 5, helicity: 0.34, shaping: 0.38, iota0: 0.820, iota1: 1.150,
+      islandAmp: 0.056, chaosAmp: 0.000, gradCancel: 0.0,
       desc: `<strong>【有理面 m=5, n=5 共振撕裂 · 五重磁岛链 (Magnetic Islands)】</strong>
       关闭格拉德消奇异配平并注入共振谐波 δB_{5,5}：当旋转变换跨越有理面 ι(ψ_r) = 5/5 = 1.00 时，傅里叶小分母 (mι − nN_fp)⁻¹ 发散！<strong>原本光滑嵌套的 KAM 磁面当场撕裂为 5 个独立的共振磁岛（见右侧庞加莱截面中的绿色 O 点与品红 X 鞍点）！</strong>`
     },
     stochastic_chaos: {
-      Nfp: 5, helicity: 0.31, shaping: 0.38, iota0: 0.780, iota1: 1.220,
-      islandAmp: 0.068, chaosAmp: 0.048, gradCancel: 0.0,
+      Nfp: 5, helicity: 0.38, shaping: 0.44, iota0: 0.780, iota1: 1.220,
+      islandAmp: 0.072, chaosAmp: 0.052, gradCancel: 0.0,
       desc: `<strong>【Chirikov 磁岛重叠判据突破 · 随机磁场混沌海 (Stochastic Sea)】</strong>
       当高 β 等离子体同时激发 m=4, 5, 6 多重有理面磁岛，且相邻磁岛半宽之和超过有理面间距 (Chirikov 参数 S > 1) 时，分界线发生同宿横截相交，<strong>外层 KAM 不变环面彻底崩解为三维混沌随机磁场海，聚变热量沿混沌磁力线快速逃逸！</strong>`
     }
@@ -1606,7 +1730,7 @@
     document.getElementById('valZeta0').textContent = `${state.zeta0Deg.toFixed(0)}°`;
 
     document.getElementById('slCoilCut').value = state.coilCutDeg;
-    document.getElementById('valCoilCut').textContent = `${state.coilCutDeg.toFixed(0)}° (露出内部磁面)`;
+    document.getElementById('valCoilCut').textContent = `${state.coilCutDeg.toFixed(0)}° (阶梯剥离三层磁面)`;
 
     rebuildGeometry();
     renderPoincareSection();
@@ -1635,7 +1759,6 @@
     });
   });
 
-  // 滑块事件绑定
   document.getElementById('slNfp').addEventListener('input', e => {
     state.Nfp = parseInt(e.target.value, 10);
     syncUIFromState();
@@ -1668,9 +1791,8 @@
     syncUIFromState();
   });
 
-  // 物理场切换
   const fieldMeta = {
-    Bmod: { title: '磁面物理量: |B| 磁场模量', min: '2.25 T', max: '5.55 T' },
+    Bmod: { title: '磁面物理量: |B| 磁场模量', min: '2.20 T', max: '5.55 T' },
     Jpar: { title: '磁面物理量: J∥/B Pfirsch-Schlüter 平行流', min: '-2.4 MA/m²T', max: '+2.4 MA/m²T' },
     GradP: { title: '磁面物理量: |∇p| 等离子体压强梯度', min: '0.0 MPa/m', max: '2.2 MPa/m' },
     Curv: { title: '磁面物理量: κ 三维测地/法向曲率', min: '-0.85 m⁻¹', max: '+0.85 m⁻¹' }
@@ -1690,15 +1812,13 @@
     });
   });
 
-  // 复选框开关
   document.getElementById('chkCoils').addEventListener('change', e => { state.showCoils = e.target.checked; });
   document.getElementById('chkFieldLines').addEventListener('change', e => { state.showFieldLines = e.target.checked; });
   document.getElementById('chkParticles').addEventListener('change', e => { state.showParticles = e.target.checked; });
   document.getElementById('chkNested').addEventListener('change', e => { state.showNested = e.target.checked; rebuildGeometry(); });
-  document.getElementById('chkSlicer').addEventListener('change', e => { state.showSlicer = e.target.checked; });
+  document.getElementById('chkSlicer').addEventListener('change', e => { state.showSlicer = e.target.checked; rebuildGeometry(); });
   document.getElementById('chkAutoRot').addEventListener('change', e => { state.autoRot = e.target.checked; });
 
-  // 鼠标/触控 3D 轨道交互
   let isDragging = false;
   let dragBtn = 0;
   let lastX = 0, lastY = 0;
@@ -1748,8 +1868,7 @@
 
     if (state.autoRot && !isDragging) {
       state.camYaw += dt * 0.14;
-      // 激光庞加莱截面沿环向缓慢扫掠，实时展示豆形 -> 水滴形 -> 三角形截面连续扭转
-      state.zeta0Deg = (state.zeta0Deg + dt * 11.5) % 360;
+      state.zeta0Deg = (state.zeta0Deg + dt * 10.0) % 360;
       document.getElementById('slZeta0').value = state.zeta0Deg;
       document.getElementById('valZeta0').textContent = `${state.zeta0Deg.toFixed(0)}°`;
       if (((now / 90) | 0) !== (((now - dt * 1000) / 90) | 0)) {
