@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>太阳能朋克像素天空城 (Solarpunk Pixel Art City) // 逐像素渲染与动态展台</title>
+<style>
+  :root {
+    --bg: #0b131e;
+    --panel: rgba(15, 26, 40, 0.92);
+    --amber: #f59e0b;
+    --gold: #fde047;
+    --teal: #14b8a6;
+    --emerald: #10b981;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 25%, #16293d 0%, #091019 100%);
+    color: var(--text);
+    font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* 顶部导航栏 */
+  .topbar {
+    background: var(--panel);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 10px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 20; flex-shrink: 0;
+    backdrop-filter: blur(10px);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .pixel-badge {
+    background: linear-gradient(135deg, #f59e0b, #10b981);
+    color: #091019; font-weight: 900; font-size: 12px;
+    padding: 4px 9px; border-radius: 5px;
+    font-family: Consolas, monospace; white-space: nowrap;
+  }
+  .title-main {
+    font-size: 17px; font-weight: 900;
+    background: linear-gradient(90deg, #fef08a, #f59e0b, #34d399);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .title-sub {
+    font-size: 11.5px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .nav-links { display: flex; gap: 8px; flex-shrink: 0; }
+  .nav-a {
+    text-decoration: none; color: #e2e8f0; font-size: 12px; font-weight: 700;
+    padding: 6px 12px; border-radius: 7px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .nav-a:hover { border-color: var(--amber); color: var(--gold); background: rgba(245,158,11,0.15); }
+
+  /* 中央像素画框舞台 */
+  .stage-container {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .frame-wrapper {
+    position: relative;
+    border-radius: 12px;
+    padding: 8px;
+    background: linear-gradient(145deg, rgba(245,158,11,0.35), rgba(20,184,166,0.25));
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(245, 158, 11, 0.15);
+    display: flex; align-items: center; justify-content: center;
+    max-width: 100%; max-height: 100%;
+  }
+  #pixel-canvas {
+    /* 严格开启整数像素最近邻插值，绝不模糊！ */
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    border-radius: 6px;
+    background: #14344a;
+    width: min(92vw, calc((100vh - 165px) * 1.5));
+    height: min(calc(92vw / 1.5), calc(100vh - 165px));
+    cursor: pointer;
+    display: block;
+  }
+
+  .hud-tag {
+    position: absolute; top: 18px; left: 20px;
+    background: rgba(9, 16, 25, 0.78);
+    border: 1px solid rgba(253, 224, 71, 0.35);
+    border-radius: 6px; padding: 5px 10px;
+    font-family: Consolas, monospace; font-size: 11px; color: var(--gold);
+    pointer-events: none;
+  }
+
+  /* 底部控制栏 */
+  .bottom-dock {
+    background: var(--panel);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 12px 20px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; flex-wrap: wrap;
+    z-index: 20; flex-shrink: 0;
+  }
+  .p-btn {
+    padding: 8px 14px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.06);
+    color: #fff; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .p-btn:hover { border-color: var(--gold); background: rgba(245, 158, 11, 0.2); transform: translateY(-1px); }
+  .p-btn.active { border-color: var(--gold); background: rgba(245, 158, 11, 0.28); color: var(--gold); }
+  .p-btn.emerald { border-color: var(--emerald); background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+
+  @media (max-width: 820px) {
+    .topbar { padding: 8px 12px; }
+    .title-sub { display: none; }
+    .title-main { font-size: 14px; }
+    .stage-container { padding: 6px; }
+    #pixel-canvas {
+      width: 96vw;
+      height: calc(96vw / 1.5);
+    }
+    .bottom-dock { padding: 8px 10px; gap: 6px; }
+    .p-btn { padding: 7px 10px; font-size: 11.5px; flex: 1; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="pixel-badge">360×240 PIXEL ART</span>
+    <div style="min-width:0;">
+      <div class="title-main">太阳能朋克理想城 (Solarpunk Utopia) · 真像素抖动动画引擎</div>
+      <div class="title-sub">4×4 Bayer 矩阵抖动光晕 · 暖砂岩拱廊与生态穹顶 · 跨楼缆车与飞艇 · 瀑布水车 · 露台观察者</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a class="nav-a" href="../PelicanCycling/index.html">🦩 鹈鹕骑车</a>
+    <a class="nav-a" href="../../index.html">◀ DLSS 5 教程</a>
+  </div>
+</header>
+
+<main class="stage-container">
+  <div class="frame-wrapper">
+    <canvas id="pixel-canvas" width="360" height="240"></canvas>
+    <div class="hud-tag" id="hud-tag">RES: 360×240 NATIVE PIXELS · BAYER 4x4 DITHERING · 60 FPS</div>
+  </div>
+</main>
+
+<footer class="bottom-dock">
+  <button class="p-btn active" id="btn-time-day">☀️ 晨曦金阳 (Argon 经典)</button>
+  <button class="p-btn" id="btn-time-sunset">🌇 琥珀晚霞</button>
+  <button class="p-btn" id="btn-time-night">🌌 萤火虫星夜</button>
+  <button class="p-btn emerald" id="btn-spawn-airship">🛸 派遣太阳能飞艇</button>
+  <button class="p-btn" id="btn-solar-pulse">✨ 聚光塔充能</button>
+  <button class="p-btn" id="btn-dither-toggle">🏁 抖动网格: ON</button>
+</footer>
+
+<script>
+// ============================================================================
+// 1. 原生 360×240 逐像素渲染引擎 (Zero Anti-Aliasing, True Pixel Art + Bayer 4x4)
+// ============================================================================
+const PW = 360, PH = 240;
+const canvas = document.getElementById('pixel-canvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+ctx.imageSmoothingEnabled = false;
+
+const imgData = ctx.createImageData(PW, PH);
+const buf32 = new Uint32Array(imgData.data.buffer);
+
+// 4x4 Bayer 有序抖动矩阵 (0..15) —— 像素画灵魂！
+const BAYER4 = [
+  [ 0,  8,  2, 10],
+  [12,  4, 14,  6],
+  [ 3, 11,  1,  9],
+  [15,  7, 13,  5]
+];
+
+let timeMode = 'day'; // 'day' | 'sunset' | 'night'
+let enableDither = true;
+let towerPulse = 0;
+
+// 颜色转换辅助: Hex -> ABGR Uint32 (Little Endian)
+function hex32(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return (255 << 24) | (b << 16) | (g << 8) | r;
+}
+
+function rgb32(r, g, b) {
+  return (255 << 24) | ((b & 255) << 16) | ((g & 255) << 8) | (r & 255);
+}
+
+// 整数像素画点与矩形
+function pset(x, y, c32) {
+  x = x | 0; y = y | 0;
+  if (x >= 0 && x < PW && y >= 0 && y < PH) {
+    buf32[y * PW + x] = c32;
+  }
+}
+
+function prect(x, y, w, h, c32) {
+  const x0 = Math.max(0, x | 0), y0 = Math.max(0, y | 0);
+  const x1 = Math.min(PW, (x + w) | 0), y1 = Math.min(PH, (y + h) | 0);
+  for (let py = y0; py < y1; py++) {
+    let row = py * PW;
+    for (let px = x0; px < x1; px++) buf32[row + px] = c32;
+  }
+}
+
+function pline(x0, y0, x1, y1, c32) {
+  x0 |= 0; y0 |= 0; x1 |= 0; y1 |= 0;
+  const dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  const dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  while (true) {
+    pset(x0, y0, c32);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+
+function pcircle(cx, cy, r, c32) {
+  cx |= 0; cy |= 0; r |= 0;
+  const r2 = r * r;
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy <= r2) pset(cx + dx, cy + dy, c32);
+    }
+  }
+}
+
+// 带 Bayer 抖动过渡的像素圆盘（用来画绝美像素太阳光晕与树冠阴影）
+function pditherCircle(cx, cy, rInner, rOuter, c32) {
+  cx |= 0; cy |= 0;
+  const rOut2 = rOuter * rOuter;
+  for (let dy = -rOuter; dy <= rOuter; dy++) {
+    const py = cy + dy;
+    if (py < 0 || py >= PH) continue;
+    for (let dx = -rOuter; dx <= rOuter; dx++) {
+      const px = cx + dx;
+      if (px < 0 || px >= PW) continue;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > rOut2) continue;
+      const d = Math.sqrt(d2);
+      if (d <= rInner) {
+        buf32[py * PW + px] = c32;
+      } else {
+        const ratio = 1.0 - (d - rInner) / (rOuter - rInner);
+        const threshold = enableDither ? (BAYER4[py & 3][px & 3] + 0.5) / 16.0 : 0.5;
+        if (ratio > threshold) buf32[py * PW + px] = c32;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// 2. 调色板定义 (严格复刻 Gemini 4 Argon 的暖金+青蓝+砂岩+翠绿像素色调)
+// ============================================================================
+const PAL = {
+  // 建筑砂岩与阴影
+  wallLight:  hex32('#f5deb3'),
+  wallMain:   hex32('#e6c288'),
+  wallShade:  hex32('#c89d62'),
+  wallDark:   hex32('#9c713e'),
+  archInside: hex32('#473323'),
+  windowGlow: hex32('#fef08a'),
+  roofTerra:  hex32('#d96b38'),
+  roofLight:  hex32('#f08c55'),
+
+  // 太阳能板与玻璃生态穹顶
+  solarDark:  hex32('#1d4ed8'),
+  solarMid:   hex32('#3b82f6'),
+  solarGrid:  hex32('#93c5fd'),
+  domeGlass:  hex32('#67e8f9'),
+  domeFrame:  hex32('#fef3c7'),
+
+  // 丰茂植被与藤蔓
+  leafDark:   hex32('#14532d'),
+  leafMid:    hex32('#15803d'),
+  leafBright: hex32('#22c55e'),
+  leafGold:   hex32('#84cc16'),
+  flowerPink: hex32('#fb7185'),
+  flowerYel:  hex32('#facc15'),
+
+  // 水体与瀑布
+  waterDeep:  hex32('#134e5e'),
+  waterMid:   hex32('#1f6f78'),
+  waterLight: hex32('#38a3a5'),
+  foamWhite:  hex32('#e0f2fe'),
+  foamCyan:   hex32('#7dd3fc'),
+
+  // 木栈道与前景露台
+  woodDark:   hex32('#5c2d16'),
+  woodMid:    hex32('#8c4622'),
+  woodLight:  hex32('#b86236'),
+  railCream:  hex32('#f5ebe0'),
+  railShade:  hex32('#d5bdaf'),
+
+  // 飞艇与木船
+  hullGold:   hex32('#eab308'),
+  hullShade:  hex32('#a16207'),
+  white:      hex32('#ffffff')
+};
+
+const SKY_BANDS = {
+  day: [
+    hex32('#16384c'), hex32('#1f4e5f'), hex32('#2c6975'),
+    hex32('#468985'), hex32('#76ab8e'), hex32('#b4c992'), hex32('#f2e29f')
+  ],
+  sunset: [
+    hex32('#1e1b4b'), hex32('#3b1d5e'), hex32('#6d286b'),
+    hex32('#9d365c'), hex32('#c8524b'), hex32('#ea7b44'), hex32('#fbbd56')
+  ],
+  night: [
+    hex32('#060b16'), hex32('#0b1528'), hex32('#112238'),
+    hex32('#163048'), hex32('#1d4158'), hex32('#255366'), hex32('#316674')
+  ]
+};
+
+// ============================================================================
+// 3. 动态场景实体数据 (飞艇、船只、缆车、飞鸟、瀑布粒子、萤火虫)
+// ============================================================================
+const airships = [
+  { x: 96,  y: 44, vx: 0.14, scale: 1.0, phase: 0 },
+  { x: 164, y: 38, vx: 0.10, scale: 1.2, phase: 2.1 },
+  { x: 28,  y: 26, vx: 0.08, scale: 0.8, phase: 4.0 }
+];
+
+const boats = [
+  { x: 118, y: 185, vx: 0.12, dir: 1 },
+  { x: 215, y: 204, vx: -0.09, dir: -1 }
+];
+
+const birds = [
+  { x: 120, y: 56, vx: 0.22, phase: 0 },
+  { x: 127, y: 53, vx: 0.22, phase: 1.2 },
+  { x: 134, y: 58, vx: 0.22, phase: 2.5 },
+  { x: 205, y: 48, vx: -0.18, phase: 0.8 }
+];
+
+const fireflies = Array.from({ length: 32 }, () => ({
+  x: Math.random() * PW,
+  y: 60 + Math.random() * 140,
+  vx: (Math.random() - 0.5) * 0.3,
+  vy: (Math.random() - 0.5) * 0.2,
+  phase: Math.random() * 6.28
+}));
+
+// ============================================================================
+// 4. 分层像素绘制函数
+// ============================================================================
+
+// [层 1] 4x4 Bayer 抖动渐变天空 + 巨型抖动光晕太阳 + 远山剪影
+function drawSkyAndSun(tick) {
+  const bands = SKY_BANDS[timeMode];
+  const skyH = 148;
+  for (let y = 0; y < skyH; y++) {
+    const pos = (y / skyH) * (bands.length - 1);
+    const idx = Math.floor(pos);
+    const frac = pos - idx;
+    const cA = bands[idx];
+    const cB = bands[Math.min(bands.length - 1, idx + 1)];
+    for (let x = 0; x < PW; x++) {
+      const thresh = enableDither ? (BAYER4[y & 3][x & 3] + 0.5) / 16.0 : 0.5;
+      buf32[y * PW + x] = frac > thresh ? cB : cA;
+    }
+  }
+
+  // 夜空繁星
+  if (timeMode === 'night') {
+    for (let i = 0; i < 45; i++) {
+      const sx = (i * 73 + 19) % PW;
+      const sy = (i * 41 + 7) % 95;
+      if (((tick >> 3) + i) % 5 !== 0) pset(sx, sy, PAL.white);
+    }
+  }
+
+  // 太阳 / 满月 (带 3 层 Bayer 棋盘抖动放射光环!)
+  const sunX = 128, sunY = timeMode === 'sunset' ? 66 : 54;
+  if (timeMode !== 'night') {
+    const pulseR = Math.sin(tick * 0.04) * 2;
+    pditherCircle(sunX, sunY, 24, 46 + pulseR, hex32(timeMode === 'sunset' ? '#f97316' : '#facc15'));
+    pditherCircle(sunX, sunY, 15, 28 + pulseR, hex32('#fef08a'));
+    pcircle(sunX, sunY, 14, hex32('#ffffff'));
+  } else {
+    pditherCircle(sunX, sunY, 12, 26, hex32('#38bdf8'));
+    pcircle(sunX, sunY, 11, hex32('#fef9c3'));
+  }
+
+  // 像素云朵 (带暖金鑲边)
+  const cloudShift = (tick * 0.08) | 0;
+  drawPixelCloud((220 - (cloudShift % 380) + 380) % 380 - 20, 32);
+  drawPixelCloud((310 - (cloudShift % 380) + 380) % 380 - 20, 46);
+
+  // 远景层叠青山剪影 + 远山风力发电机群
+  const mtCol1 = timeMode === 'night' ? hex32('#0f293a') : hex32('#3b6e75');
+  const mtCol2 = timeMode === 'night' ? hex32('#133647') : hex32('#2a555e');
+  for (let x = 0; x < PW; x++) {
+    const h1 = 104 - Math.floor(Math.sin(x * 0.025 + 0.5) * 18 + Math.cos(x * 0.06) * 8);
+    for (let y = h1; y < 148; y++) pset(x, y, mtCol1);
+
+    const h2 = 116 - Math.floor(Math.sin(x * 0.035 + 2.1) * 14 + Math.sin(x * 0.08) * 5);
+    for (let y = h2; y < 148; y++) pset(x, y, mtCol2);
+  }
+
+  // 远山上的小风车群 (x = 148, 166, 184)
+  [148, 166, 184].forEach((wx, idx) => {
+    const wy = 98 + (idx % 2) * 4;
+    pline(wx, wy, wx, wy + 16, hex32('#cbd5e1'));
+    drawWindmillBlades(wx, wy, 7, tick * 0.06 + idx, hex32('#f8fafc'));
+  });
+}
+
+function drawPixelCloud(cx, cy) {
+  const cTop = timeMode === 'night' ? hex32('#334155') : hex32('#fffbeb');
+  const cBot = timeMode === 'night' ? hex32('#1e293b') : hex32('#fde68a');
+  pcircle(cx, cy, 8, cBot);
+  pcircle(cx + 10, cy - 3, 11, cBot);
+  pcircle(cx + 22, cy - 1, 9, cBot);
+  pcircle(cx + 31, cy + 2, 6, cBot);
+  pcircle(cx, cy - 1, 7, cTop);
+  pcircle(cx + 10, cy - 5, 10, cTop);
+  pcircle(cx + 22, cy - 3, 8, cTop);
+}
+
+function drawWindmillBlades(cx, cy, len, angle, col) {
+  for (let i = 0; i < 3; i++) {
+    const a = angle + (i * Math.PI * 2) / 3;
+    const tx = Math.round(cx + Math.cos(a) * len);
+    const ty = Math.round(cy + Math.sin(a) * len);
+    pline(cx, cy, tx, ty, col);
+  }
+  pset(cx, cy, PAL.roofTerra);
+}
+
+// [层 2] 建筑块与拱门绘制器 (严格还原地中海暖砂岩拱廊 + 太阳能斜顶 + 垂挂绿植)
+function drawSandstoneBuilding(x, y, w, h, arches, hasSolarRoof = true) {
+  // 墙体主色 + 右侧暗部立体阴影
+  prect(x, y, w, h, PAL.wallMain);
+  prect(x, y, 2, h, PAL.wallLight);
+  prect(x + w - 4, y, 4, h, PAL.wallShade);
+  prect(x, y, w, 2, PAL.wallLight);
+
+  // 水平石砖纹理线
+  for (let py = y + 6; py < y + h; py += 8) {
+    pline(x + 2, py, x + w - 3, py, PAL.wallShade);
+  }
+
+  // 圆拱窗/拱门序列
+  if (arches > 0) {
+    const step = Math.floor((w - 6) / arches);
+    const aw = Math.max(4, step - 4);
+    const ah = Math.min(12, h - 8);
+    const ay = y + Math.floor((h - ah) * 0.55);
+    const insideCol = timeMode === 'night' ? PAL.windowGlow : PAL.archInside;
+
+    for (let i = 0; i < arches; i++) {
+      const ax = x + 4 + i * step;
+      // 拱门阴影外框
+      prect(ax - 1, ay, aw + 2, ah, PAL.wallDark);
+      prect(ax, ay + 2, aw, ah - 2, insideCol);
+      // 半圆拱顶
+      prect(ax + 1, ay, aw - 2, 2, insideCol);
+      // 窗台绿植点缀
+      if (i % 2 === 0) {
+        prect(ax, ay + ah - 1, aw, 2, PAL.leafMid);
+        pset(ax + 2, ay + ah, PAL.leafBright);
+      }
+    }
+  }
+
+  // 屋顶：陶土瓦檐或蓝色太阳能光伏阵列
+  if (hasSolarRoof) {
+    for (let r = 0; r < 5; r++) {
+      prect(x - 2 + r, y - 5 + r, w + 4 - r * 2, 1, r % 2 === 0 ? PAL.solarMid : PAL.solarDark);
+    }
+    // 太阳能板白色分割线
+    for (let sx = x + 4; sx < x + w - 4; sx += 9) {
+      pline(sx, y - 5, sx - 2, y - 1, PAL.solarGrid);
+    }
+  } else {
+    for (let r = 0; r < 4; r++) {
+      prect(x - 2 + r, y - 4 + r, w + 4 - r * 2, 1, r < 2 ? PAL.roofLight : PAL.roofTerra);
+    }
+  }
+}
+
+function drawFoliageCluster(cx, cy, r) {
+  pcircle(cx, cy + 1, r, PAL.leafDark);
+  pcircle(cx, cy, r - 1, PAL.leafMid);
+  pditherCircle(cx - 2, cy - 2, Math.max(1, r - 4), r - 1, PAL.leafBright);
+  if ((cx + cy) % 3 === 0) pset(cx - 1, cy - 1, PAL.flowerYel);
+}
+
+function drawGlassBioDome(cx, baseY, rx, ry) {
+  for (let dy = -ry; dy <= 0; dy++) {
+    const span = Math.round(rx * Math.sqrt(1 - (dy * dy) / (ry * ry)));
+    for (let dx = -span; dx <= span; dx++) {
+      const px = cx + dx, py = baseY + dy;
+      // 内部绿植与半透明玻璃网格
+      if (dy > -ry * 0.45 && Math.abs(dx) < span - 2) {
+        pset(px, py, (px + py) % 2 === 0 ? PAL.leafBright : PAL.leafMid);
+      } else if ((px + py) % 2 === 0) {
+        pset(px, py, PAL.domeGlass);
+      }
+    }
+    // 金色玻璃肋拱架
+    pset(cx - span, baseY + dy, PAL.domeFrame);
+    pset(cx + span, baseY + dy, PAL.domeFrame);
+    pset(cx + Math.round(span * 0.45), baseY + dy, PAL.domeFrame);
+    pset(cx - Math.round(span * 0.45), baseY + dy, PAL.domeFrame);
+  }
+  prect(cx - rx - 2, baseY, rx * 2 + 4, 3, PAL.wallDark);
+}
+
+// [层 3] 绘制完整太阳能朋克左右双城、聚光塔、中央石拱桥、双瀑布与旋转水车
+function drawSolarpunkCity(tick) {
+  // --- 左侧生态城建筑群 (Terraced Left Citadel) ---
+  // 顶层玻璃穹顶塔楼
+  drawGlassBioDome(74, 62, 18, 12);
+  drawSandstoneBuilding(52, 62, 44, 24, 3, false);
+  // 中层双翼阶梯楼
+  drawSandstoneBuilding(22, 86, 46, 28, 3, true);
+  drawSandstoneBuilding(64, 84, 48, 30, 4, true);
+  // 底层临水长廊
+  drawSandstoneBuilding(12, 114, 98, 30, 6, true);
+
+  // 左侧大风车 (x=28, y=54)
+  pline(28, 54, 28, 82, PAL.railCream);
+  pline(27, 54, 27, 82, PAL.wallShade);
+  drawWindmillBlades(28, 54, 15, tick * 0.05, PAL.white);
+
+  // --- 右侧太阳聚光塔与圣殿建筑群 (Right Solar Spire & Terraces) ---
+  // 塔尖聚光塔 (Solar Receiver Spire)
+  const spireX = 248, spireTopY = 26;
+  prect(spireX - 4, spireTopY + 8, 9, 24, PAL.wallLight);
+  prect(spireX + 2, spireTopY + 8, 3, 24, PAL.wallShade);
+  // 聚光太阳球
+  const glowR = 10 + Math.round(towerPulse * 10);
+  pditherCircle(spireX, spireTopY + 3, 4, glowR, hex32('#fde047'));
+  pcircle(spireX, spireTopY + 3, 4, PAL.white);
+
+  // 右侧上层圆顶大殿
+  drawGlassBioDome(248, 66, 26, 14);
+  drawSandstoneBuilding(216, 66, 64, 24, 5, true);
+  // 右侧中层与水车楼
+  drawSandstoneBuilding(204, 90, 84, 26, 6, true);
+  drawSandstoneBuilding(298, 76, 52, 40, 3, true);
+  // 右侧底层拱廊
+  drawSandstoneBuilding(194, 116, 102, 28, 7, false);
+  drawSandstoneBuilding(296, 116, 58, 28, 3, true);
+
+  // 右侧双风车 (x=204, y=50 和 x=282, y=46)
+  pline(204, 50, 204, 86, PAL.railCream);
+  drawWindmillBlades(204, 50, 16, tick * 0.055 + 1.0, PAL.white);
+  pline(282, 46, 282, 74, PAL.railCream);
+  drawWindmillBlades(282, 46, 15, tick * 0.05 + 2.2, PAL.white);
+
+  // --- 中央跨河石拱水道桥 (Central Aqueduct Bridge) ---
+  prect(106, 110, 90, 34, PAL.wallMain);
+  prect(106, 110, 90, 3, PAL.wallLight);
+  // 桥面绿植护栏
+  for (let bx = 108; bx < 194; bx += 6) {
+    prect(bx, 107, 4, 3, PAL.leafMid);
+  }
+  // 桥侧小拱洞
+  drawSandstoneBuilding(108, 114, 30, 28, 2, false);
+  drawSandstoneBuilding(164, 114, 30, 28, 2, false);
+
+  // --- 中央主桥洞动态像素大瀑布 (Main Waterfall x=139..161, y=118..154) ---
+  prect(138, 116, 26, 36, PAL.archInside);
+  drawPixelWaterfall(140, 118, 22, 36, tick);
+
+  // --- 右侧高落差瀑布 + 旋转木水车 (Right Waterfall & Spinning Waterwheel) ---
+  drawPixelWaterfall(302, 96, 14, 54, tick + 17);
+  drawWaterwheel(322, 132, 14, tick * 0.045);
+
+  // --- 河岸石堤 (River Embankment y=144..154) ---
+  prect(0, 144, PW, 8, PAL.wallShade);
+  prect(0, 144, PW, 2, PAL.wallLight);
+  for (let rx = 0; rx < PW; rx += 12) {
+    pline(rx, 144, rx, 151, PAL.wallDark);
+  }
+
+  // --- 丰茂树冠群与悬垂藤蔓 (Lush Trees & Hanging Vines) ---
+  const trees = [
+    [18, 136, 11], [34, 138, 9], [98, 134, 12], [116, 136, 10],
+    [130, 138, 9], [170, 136, 11], [186, 138, 9], [254, 138, 10],
+    [270, 136, 11], [286, 138, 9], [54, 82, 8], [104, 82, 7],
+    [214, 88, 8], [288, 88, 9]
+  ];
+  trees.forEach(([tx, ty, tr]) => drawFoliageCluster(tx, ty, tr));
+
+  // 左上角前景悬垂大树冠与藤蔓 (Framing Canopy，完全复刻 Argon 左上角细节!)
+  drawFoliageCluster(14, 8, 16);
+  drawFoliageCluster(36, 6, 14);
+  drawFoliageCluster(56, 4, 11);
+  for (let vx = 8; vx <= 62; vx += 6) {
+    const vLen = 10 + ((vx * 7) % 14) + Math.round(Math.sin(tick * 0.05 + vx) * 1.5);
+    for (let vy = 12; vy < 12 + vLen; vy++) {
+      pset(vx, vy, vy % 2 === 0 ? PAL.leafBright : PAL.leafMid);
+    }
+  }
+
+  // --- 跨城空中索道与滑动缆车 (Aerial Gondola Cableway) ---
+  for (let cx = 102; cx <= 216; cx++) {
+    const sag = Math.sin(((cx - 102) / 114) * Math.PI) * 10;
+    const cy = Math.round(76 + sag);
+    pset(cx, cy, PAL.archInside);
+    // 彩色小灯串
+    if (cx % 14 === 0) pset(cx, cy + 1, PAL.flowerYel);
+  }
+  // 两辆往返运行的黄色像素缆车
+  [0.25, 0.72].forEach((offset, idx) => {
+    const tPos = ((tick * 0.0025 + offset) % 1.0);
+    const gx = Math.round(108 + tPos * 102);
+    const gy = Math.round(76 + Math.sin(((gx - 102) / 114) * Math.PI) * 10);
+    pline(gx, gy, gx, gy + 4, PAL.archInside);
+    prect(gx - 4, gy + 4, 9, 6, PAL.hullGold);
+    prect(gx - 3, gy + 5, 7, 2, PAL.domeGlass);
+  });
+}
+
+function drawPixelWaterfall(x, y, w, h, tick) {
+  prect(x, y, w, h, PAL.waterLight);
+  for (let py = y; py < y + h; py++) {
+    for (let px = x; px < x + w; px++) {
+      const stream = (py + (tick >> 1) + (px * 3)) % 7;
+      if (stream < 2 || px === x || px === x + w - 1) {
+        pset(px, py, PAL.foamWhite);
+      } else if (stream < 4) {
+        pset(px, py, PAL.foamCyan);
+      }
+    }
+  }
+  // 瀑布底部翻滚的水花泡沫团
+  for (let i = -3; i <= w + 3; i += 4) {
+    const r = 3 + ((i + (tick >> 2)) & 1);
+    pcircle(x + i, y + h - 1, r, PAL.foamWhite);
+  }
+}
+
+function drawWaterwheel(cx, cy, r, angle) {
+  // 外圈木轮
+  for (let a = 0; a < Math.PI * 2; a += 0.12) {
+    pset(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), PAL.woodDark);
+    pset(Math.round(cx + Math.cos(a) * (r - 2)), Math.round(cy + Math.sin(a) * (r - 2)), PAL.woodLight);
+  }
+  // 6 根旋转辐条与水斗叶片
+  for (let i = 0; i < 6; i++) {
+    const a = angle + (i * Math.PI) / 3;
+    const tx = Math.round(cx + Math.cos(a) * r);
+    const ty = Math.round(cy + Math.sin(a) * r);
+    pline(cx, cy, tx, ty, PAL.woodMid);
+    prect(tx - 1, ty - 1, 3, 3, PAL.foamWhite);
+  }
+  pcircle(cx, cy, 3, PAL.hullGold);
+}
+
+// [层 4] 绘制波光粼粼的运河水面、建筑倒影与太阳能游船
+function drawRiverAndBoats(tick) {
+  const waterTop = 152;
+  for (let y = waterTop; y < PH; y++) {
+    const depthRatio = (y - waterTop) / (PH - waterTop);
+    const baseCol = depthRatio < 0.35 ? PAL.waterLight : depthRatio < 0.7 ? PAL.waterMid : PAL.waterDeep;
+    for (let x = 0; x < PW; x++) {
+      let c = baseCol;
+      // 太阳/聚光塔金色水波倒影与横向波纹
+      const wave = Math.sin(x * 0.12 + y * 0.35 - tick * 0.08);
+      if (wave > 0.78 && ((x + y + (tick >> 2)) % 3 === 0)) {
+        if (x > 115 && x < 168) c = PAL.foamWhite;
+        else c = PAL.foamCyan;
+      } else if (x > 50 && x < 110 && y < 185 && (y % 3 === 0) && wave > 0.2) {
+        c = PAL.wallShade; // 建筑暖色倒影
+      }
+      buf32[y * PW + x] = c;
+    }
+  }
+
+  // 绘制河面小木船
+  boats.forEach(b => {
+    b.x += b.vx;
+    if (b.x > 275) b.x = 95;
+    if (b.x < 95) b.x = 275;
+    const bx = Math.round(b.x);
+    const by = b.y + Math.round(Math.sin(tick * 0.06 + b.x) * 1);
+
+    // 船底水波纹
+    pline(bx - 12, by + 4, bx + 12, by + 4, PAL.foamWhite);
+    // 船身与蓝色太阳能顶棚
+    prect(bx - 9, by + 1, 18, 3, PAL.woodDark);
+    pline(bx - 11, by + 1, bx + 11, by + 1, PAL.woodLight);
+    prect(bx - 6, by - 3, 12, 2, PAL.solarMid);
+    pline(bx - 4, by - 1, bx - 4, by + 1, PAL.woodMid);
+    pline(bx + 4, by - 1, bx + 4, by + 1, PAL.woodMid);
+  });
+}
+
+// [层 5] 天空飞艇编队与飞鸟
+function drawAirshipsAndBirds(tick) {
+  airships.forEach(s => {
+    s.x += s.vx;
+    if (s.x > PW + 30) s.x = -30;
+    const sx = Math.round(s.x);
+    const sy = Math.round(s.y + Math.sin(tick * 0.05 + s.phase) * 2);
+    const rx = Math.round(13 * s.scale), ry = Math.round(6 * s.scale);
+
+    // 飞艇气囊椭圆
+    for (let dy = -ry; dy <= ry; dy++) {
+      const span = Math.round(rx * Math.sqrt(1 - (dy * dy) / (ry * ry)));
+      for (let dx = -span; dx <= span; dx++) {
+        let col = dy < -1 ? PAL.wallLight : dy > 2 ? PAL.wallDark : PAL.hullGold;
+        if (Math.abs(dx) < 3) col = PAL.roofTerra; // 中段装饰条带
+        pset(sx + dx, sy + dy, col);
+      }
+    }
+    // 吊舱与旋转尾桨
+    prect(sx - 4, sy + ry + 1, 8, 3, PAL.woodDark);
+    pset(sx - 1, sy + ry + 2, PAL.windowGlow);
+    pset(sx + 2, sy + ry + 2, PAL.windowGlow);
+    const propY = (tick & 2) ? -1 : 1;
+    pline(sx - rx - 2, sy + propY, sx - rx, sy, PAL.white);
+  });
+
+  // 像素 V 字飞鸟
+  birds.forEach(bd => {
+    bd.x += bd.vx;
+    if (bd.x > PW + 10) bd.x = -10;
+    if (bd.x < -10) bd.x = PW + 10;
+    const bx = Math.round(bd.x), by = bd.y;
+    const flap = Math.sin(tick * 0.18 + bd.phase) > 0 ? -1 : 1;
+    pset(bx, by, PAL.archInside);
+    pset(bx - 1, by + flap, PAL.archInside);
+    pset(bx + 1, by + flap, PAL.archInside);
+  });
+}
+
+// [层 6] 前景左下角红砖木栏露台 + 草帽观察者 + 望远镜 + 右下角绿植露台 (Argon 构图精髓!)
+function drawForegroundTerraces(tick) {
+  // --- 左下角砖木观景露台 (x=0..96, y=194..240) ---
+  // 斜向红砖甲板
+  for (let y = 198; y < PH; y++) {
+    const rightEdge = 96 - Math.floor((y - 198) * 0.25);
+    for (let x = 0; x < rightEdge; x++) {
+      let col = PAL.woodMid;
+      if ((y - 198) % 5 === 0 || (x + (y >> 2) * 4) % 9 === 0) col = PAL.woodDark;
+      else if ((x + y) % 7 === 0) col = PAL.woodLight;
+      pset(x, y, col);
+    }
+    // 露台侧壁阴影
+    prect(rightEdge, y, 4, 1, PAL.woodDark);
+  }
+
+  // 白色古典木栏杆 (x=0..94, y=184..198)
+  prect(0, 184, 95, 3, PAL.railCream);
+  prect(0, 196, 95, 3, PAL.railShade);
+  for (let rx = 4; rx <= 90; rx += 9) {
+    prect(rx, 187, 3, 9, PAL.railCream);
+    pset(rx + 2, 188, PAL.railShade);
+  }
+  // 转角大立柱
+  prect(90, 181, 6, 18, PAL.railCream);
+
+  // 小圆木桌与花盆
+  prect(18, 196, 16, 3, PAL.woodLight);
+  prect(24, 199, 4, 10, PAL.woodDark);
+  drawFoliageCluster(8, 200, 7);
+
+  // 铜制小望远镜
+  pline(42, 186, 48, 183, PAL.hullGold);
+  pline(45, 185, 43, 195, PAL.woodDark);
+  pline(45, 185, 47, 195, PAL.woodDark);
+
+  // 戴宽檐草帽、穿绿斗篷的像素少女观察者 (x=60, y=166..198)
+  const breath = (tick >> 4) & 1;
+  // 靴子与双腿
+  prect(58, 192, 3, 7, PAL.woodDark);
+  prect(63, 192, 3, 7, PAL.woodDark);
+  // 绿色旅行斗篷与长裙
+  prect(57, 177 + breath, 10, 15, PAL.leafMid);
+  prect(56, 179 + breath, 4, 10, PAL.leafBright); // 斗篷高光
+  // 飘起的红色小围巾
+  const scarfWave = (tick >> 3) & 1;
+  prect(53, 176 + breath, 5, 2, PAL.flowerPink);
+  pset(51, 175 + scarfWave, PAL.flowerPink);
+  // 头部与宽檐太阳草帽
+  prect(59, 171 + breath, 6, 5, PAL.wallLight);
+  prect(54, 169 + breath, 16, 2, PAL.hullGold);
+  prect(57, 166 + breath, 10, 3, PAL.wallLight);
+  prect(57, 168 + breath, 10, 1, PAL.roofTerra); // 帽带
+
+  // --- 右下角前景绿植石栏露台 (x=282..360, y=200..240) ---
+  prect(284, 202, 76, 38, PAL.wallShade);
+  prect(284, 200, 76, 3, PAL.railCream);
+  for (let rx = 290; rx < 358; rx += 10) {
+    prect(rx, 204, 5, 12, PAL.archInside);
+  }
+  drawFoliageCluster(304, 222, 13);
+  drawFoliageCluster(326, 226, 15);
+  drawFoliageCluster(348, 220, 12);
+
+  // 星夜/晚霞模式下的漂浮萤火虫粒子
+  if (timeMode !== 'day' || towerPulse > 0.05) {
+    fireflies.forEach(f => {
+      f.x = (f.x + f.vx + PW) % PW;
+      f.y += f.vy;
+      if (f.y < 50 || f.y > 210) f.vy = -f.vy;
+      if (Math.sin(tick * 0.1 + f.phase) > 0.1) {
+        pset(f.x, f.y, PAL.windowGlow);
+      }
+    });
+  }
+}
+
+// ============================================================================
+// 5. 交互绑定与主循环
+// ============================================================================
+function setTimeMode(mode, btnId) {
+  timeMode = mode;
+  document.querySelectorAll('#btn-time-day, #btn-time-sunset, #btn-time-night').forEach(b => {
+    b.classList.toggle('active', b.id === btnId);
+  });
+}
+
+document.getElementById('btn-time-day').onclick = () => setTimeMode('day', 'btn-time-day');
+document.getElementById('btn-time-sunset').onclick = () => setTimeMode('sunset', 'btn-time-sunset');
+document.getElementById('btn-time-night').onclick = () => setTimeMode('night', 'btn-time-night');
+
+document.getElementById('btn-spawn-airship').onclick = () => {
+  airships.push({
+    x: -20,
+    y: 22 + Math.random() * 34,
+    vx: 0.15 + Math.random() * 0.12,
+    scale: 0.85 + Math.random() * 0.45,
+    phase: Math.random() * 6.28
+  });
+  if (airships.length > 7) airships.shift();
+};
+
+document.getElementById('btn-solar-pulse').onclick = () => {
+  towerPulse = 1.0;
+};
+
+document.getElementById('btn-dither-toggle').onclick = e => {
+  enableDither = !enableDither;
+  e.currentTarget.textContent = `🏁 抖动网格: ${enableDither ? 'ON' : 'OFF'}`;
+  e.currentTarget.classList.toggle('active', enableDither);
+};
+
+canvas.onclick = () => {
+  towerPulse = 1.0;
+};
+
+let tick = 0;
+function loop() {
+  requestAnimationFrame(loop);
+  tick++;
+  if (towerPulse > 0.01) towerPulse *= 0.94;
+  else towerPulse = 0;
+
+  drawSkyAndSun(tick);
+  drawAirshipsAndBirds(tick);
+  drawSolarpunkCity(tick);
+  drawRiverAndBoats(tick);
+  drawForegroundTerraces(tick);
+
+  ctx.putImageData(imgData, 0, 0);
+}
+
+loop();
+</script>
+</body>
+</html>

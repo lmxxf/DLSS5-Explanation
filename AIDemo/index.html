@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 经典视觉基准陈列馆 (AIDemo Gallery)</title>
+<style>
+  :root {
+    --bg: #080f1a;
+    --card: rgba(16, 28, 46, 0.88);
+    --border: rgba(0, 229, 255, 0.25);
+    --amber: #ffbf00;
+    --cyan: #00e5ff;
+    --emerald: #00ff9d;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% 0%, #152b47 0%, #070d17 100%);
+    color: var(--text);
+    font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    padding: 36px 20px;
+  }
+  .container { max-width: 1020px; margin: 0 auto; }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 24px; margin-bottom: 30px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    flex-wrap: wrap; gap: 14px;
+  }
+  .title {
+    font-size: 26px; font-weight: 900;
+    background: linear-gradient(90deg, #fff, var(--amber), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .sub { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+  .back-btn {
+    text-decoration: none; color: var(--cyan); font-weight: 700; font-size: 13.5px;
+    padding: 9px 16px; border-radius: 8px;
+    border: 1px solid var(--border); background: rgba(0, 229, 255, 0.1);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    text-decoration: none;
+    color: inherit;
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: var(--amber);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.55);
+  }
+  .card-icon { font-size: 38px; margin-bottom: 12px; }
+  .card-tag {
+    display: inline-block; font-size: 11px; font-weight: 800;
+    padding: 3px 8px; border-radius: 5px;
+    background: rgba(255, 191, 0, 0.18); color: var(--amber);
+    font-family: Consolas, monospace; margin-bottom: 8px;
+  }
+  .card-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; color: #fff; }
+  .card-desc { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 18px; }
+  .card-go { font-size: 13px; font-weight: 800; color: var(--emerald); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="title">🎨 AI 经典基准测试陈列馆 (AIDemo Gallery)</div>
+        <div class="sub">收录全网热门大模型前端/物理/像素艺术灵魂考题的满血实现（100% 零外网依赖）</div>
+      </div>
+      <a class="back-btn" href="../index.html">◀ 返回 DLSS 5 架构教程主站</a>
+    </div>
+
+    <div class="grid">
+      <a class="card" href="./SolarpunkCity/index.html">
+        <div>
+          <div class="card-icon">☀️🏙️</div>
+          <span class="card-tag">360×240 PIXEL ART · BAYER 4x4</span>
+          <div class="card-title">太阳能朋克像素天空城 (Solarpunk City)</div>
+          <div class="card-desc">
+            原生 360×240 逐像素缓冲区 + 4×4 Bayer 矩阵有序抖动太阳光晕、暖砂岩拱廊城堡、玻璃生态穹顶、双瀑布旋转水车、跨楼索道缆车、飞艇编队与前景露台草帽少女，支持晨曦/晚霞/星夜切换。
+          </div>
+        </div>
+        <div class="card-go">立即进入体验 ▶</div>
+      </a>
+
+      <a class="card" href="./PelicanCycling/index.html">
+        <div>
+          <div class="card-icon">🦩🚲</div>
+          <span class="card-tag">SVG PHYSICS · 2-BONE IK · WEBAUDIO</span>
+          <div class="card-title">鹈鹕皮特的海滨骑行 (Pelican Cycling)</div>
+          <div class="card-desc">
+            Simon Willison 经典基准考题满血版：余弦定理双圆解析 IK 踩踏、三明治大嘴口袋图层、跃出水面的小蓝鱼、精准弹道高空投喂、WebAudio 合成机械车铃与翘头冲刺特技。
+          </div>
+        </div>
+        <div class="card-go">立即进入体验 ▶</div>
+      </a>
+
+      <a class="card" href="../index.html">
+        <div>
+          <div class="card-icon">🔬⚡</div>
+          <span class="card-tag">RDNA4 GFX1201 · 71-BLOCK U-NET + VIT</span>
+          <div class="card-title">DLSS 5 架构拆解与 RX 9070 XT 优化实战</div>
+          <div class="card-desc">
+            5 步交互式 3D 神经渲染架构教程，展示 71 层 Hybrid Swin-U-Net + ViT 数据流，以及让《剑星》2K 稳锁 60 FPS 的 6 刀 RDNA4 汇编级优化。
+          </div>
+        </div>
+        <div class="card-go">返回主教程 ▶</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
