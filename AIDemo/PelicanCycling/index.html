@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>鹈鹕骑自行车 (Pelican Riding a Bicycle) // 3D IK 逆运动学 + SVG 双引擎展台</title>
+<style>
+  :root {
+    --bg: #07111e;
+    --panel: rgba(10, 22, 38, 0.88);
+    --border: rgba(255, 191, 0, 0.32);
+    --amber: #ffbf00;
+    --orange: #ff6b2b;
+    --cyan: #00e5ff;
+    --emerald: #00ff9d;
+    --text: #f0f6fc;
+    --muted: #8ca5be;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: linear-gradient(180deg, #071224 0%, #102542 55%, #1c3b5e 100%);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    touch-action: none;
+  }
+
+  #stage-canvas {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 1; cursor: grab;
+    touch-action: none;
+  }
+  #stage-canvas:active { cursor: grabbing; }
+
+  /* SVG Overlay Modal / Split View */
+  #svg-showcase {
+    position: fixed;
+    right: 16px;
+    top: 84px;
+    width: 390px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 20;
+    padding: 14px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s;
+  }
+  #svg-showcase.hidden-panel {
+    transform: translateX(430px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .hud-top {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    height: 60px; z-index: 20;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .badge {
+    background: linear-gradient(135deg, var(--amber), var(--orange));
+    color: #06101e; font-weight: 900; font-size: 12px;
+    padding: 5px 10px; border-radius: 7px;
+    font-family: Consolas, monospace; white-space: nowrap;
+  }
+  .title-wrap { min-width: 0; }
+  .title-main {
+    font-size: 16px; font-weight: 800;
+    background: linear-gradient(90deg, #fff, var(--amber), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .title-sub {
+    font-size: 11px; color: var(--muted); font-family: Consolas, monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .stats-row { display: flex; gap: 18px; align-items: center; flex-shrink: 0; }
+  .stat-item { text-align: right; }
+  .stat-label { font-size: 9.5px; color: var(--muted); text-transform: uppercase; }
+  .stat-val { font-size: 17px; font-weight: 800; font-family: Consolas, monospace; color: var(--emerald); }
+
+  /* Bottom Control Dock */
+  .hud-bottom {
+    position: fixed; bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    background: var(--panel);
+    border: 1px solid rgba(0, 229, 255, 0.32);
+    border-radius: 14px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.7);
+    max-width: calc(100vw - 20px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .ctrl-btn {
+    padding: 8px 13px; border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all 0.16s;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .ctrl-btn:hover { border-color: var(--cyan); background: rgba(0, 229, 255, 0.18); transform: translateY(-1px); }
+  .ctrl-btn.active { border-color: var(--amber); background: rgba(255, 191, 0, 0.22); color: var(--amber); }
+  .ctrl-btn.action { border-color: var(--emerald); background: rgba(0, 255, 157, 0.16); color: var(--emerald); }
+
+  .slider-group {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(0,0,0,0.35); padding: 6px 11px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 11.5px; color: var(--muted);
+  }
+  input[type="range"] {
+    accent-color: var(--amber); width: 95px; cursor: pointer;
+  }
+
+  .svg-card-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12.5px; font-weight: 800; color: var(--amber);
+    margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .svg-box {
+    background: radial-gradient(circle at 50% 35%, #17375e, #091526);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; justify-content: center; align-items: center;
+  }
+  .checklist {
+    margin-top: 9px; font-size: 11px; color: #c8dced; line-height: 1.55;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px;
+  }
+
+  .back-link {
+    text-decoration: none; color: var(--cyan); font-size: 12px; font-weight: 700;
+    padding: 6px 10px; border-radius: 7px; border: 1px solid rgba(0,229,255,0.35);
+    background: rgba(0,229,255,0.1); white-space: nowrap;
+  }
+  .back-link:hover { background: rgba(0,229,255,0.25); }
+
+  @media (max-width: 900px) {
+    .hud-top { height: auto; padding: 8px 12px; flex-wrap: wrap; gap: 6px; }
+    .title-sub { display: none; }
+    .title-main { font-size: 13.5px; }
+    .stats-row { width: 100%; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px; }
+    .stat-item { text-align: center; }
+    .stat-val { font-size: 13.5px; }
+
+    #svg-showcase {
+      top: auto; bottom: 82px; left: 10px; right: 10px; width: auto;
+      padding: 10px;
+    }
+    #svg-showcase.hidden-panel {
+      transform: translateY(420px);
+    }
+    .hud-bottom {
+      bottom: 8px; width: calc(100vw - 16px); padding: 8px; gap: 6px;
+    }
+    .ctrl-btn { padding: 7px 9px; font-size: 11px; flex: 1; justify-content: center; }
+    .slider-group { width: 100%; justify-content: space-between; }
+    input[type="range"] { flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stage-canvas"></canvas>
+
+<!-- Top Bar -->
+<div class="hud-top">
+  <div class="brand">
+    <span class="badge">AI BENCHMARK // PELICAN</span>
+    <div class="title-wrap">
+      <div class="title-main">醍醐骑车 (Pelican Riding a Bicycle) · 3D 逆运动学 + 动态 SVG 展台</div>
+      <div class="title-sub">双圆解析 IK 骨骼解算 · 真实钻石三角车架 · 100% 圆轮与链条传动 · 喉囊捕鱼物理模拟</div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-label">踏板角速度</div>
+      <div class="stat-val" id="val-rpm">92 RPM</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">双腿 IK 误差</div>
+      <div class="stat-val" style="color:var(--cyan);">0.00 mm</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">喉囊存鱼量</div>
+      <div class="stat-val" id="val-fish" style="color:var(--amber);">2 条 🐟</div>
+    </div>
+    <a class="back-link" href="../../index.html">◀ 返回 DLSS 5 教程</a>
+  </div>
+</div>
+
+<!-- Right Floating Card: Simon Willison Classic Animated SVG -->
+<div id="svg-showcase">
+  <div class="svg-card-head">
+    <span>🎨 Simon Willison 基准：纯矢量 SVG 实时动画</span>
+    <span style="font-size:10.5px;color:var(--emerald);font-family:monospace;">ZERO-ERROR GEOMETRY</span>
+  </div>
+  <div class="svg-box">
+    <svg id="pelican-svg" viewBox="0 0 420 290" width="100%" height="215" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0f2544"/>
+          <stop offset="65%" stop-color="#1e4976"/>
+          <stop offset="100%" stop-color="#ff9a52" stop-opacity="0.35"/>
+        </linearGradient>
+        <linearGradient id="pouchGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffbf00"/>
+          <stop offset="100%" stop-color="#ff5e1a"/>
+        </linearGradient>
+        <linearGradient id="frameGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#00e5ff"/>
+          <stop offset="100%" stop-color="#0077ff"/>
+        </linearGradient>
+      </defs>
+
+      <!-- 夕阳海平线背景 -->
+      <rect width="420" height="290" fill="url(#skyGrad)"/>
+      <circle cx="345" cy="68" r="34" fill="#ffbf00" opacity="0.85"/>
+      <line x1="0" y1="248" x2="420" y2="248" stroke="#00e5ff" stroke-width="2" stroke-opacity="0.45"/>
+      <g id="svg-road-dashes" stroke="#ffbf00" stroke-width="2.5" stroke-linecap="round" opacity="0.6">
+        <line x1="30" y1="262" x2="75" y2="262"/>
+        <line x1="140" y1="262" x2="185" y2="262"/>
+        <line x1="250" y1="262" x2="295" y2="262"/>
+        <line x1="360" y1="262" x2="405" y2="262"/>
+      </g>
+
+      <!-- 后腿 (远端腿，深橙色，动态 IK 更新) -->
+      <polyline id="svg-leg-back" points="185,128 205,162 200,202" fill="none" stroke="#c85a17" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <polygon id="svg-foot-back" points="192,202 214,202 206,195" fill="#c85a17"/>
+
+      <!-- 后轮 (cx=115, cy=202, r=42) -->
+      <g id="svg-wheel-rear" transform="translate(115, 202)">
+        <circle r="42" fill="none" stroke="#1b2636" stroke-width="9"/>
+        <circle r="38" fill="none" stroke="#dce8f5" stroke-width="2.2"/>
+        <g id="svg-spokes-rear" stroke="#9ab4cd" stroke-width="1.4">
+          <line x1="-38" y1="0" x2="38" y2="0"/><line x1="0" y1="-38" x2="0" y2="38"/>
+          <line x1="-27" y1="-27" x2="27" y2="27"/><line x1="-27" y1="27" x2="27" y2="-27"/>
+        </g>
+        <circle r="5" fill="#ffbf00"/>
+      </g>
+
+      <!-- 前轮 (cx=295, cy=202, r=42) -->
+      <g id="svg-wheel-front" transform="translate(295, 202)">
+        <circle r="42" fill="none" stroke="#1b2636" stroke-width="9"/>
+        <circle r="38" fill="none" stroke="#dce8f5" stroke-width="2.2"/>
+        <g id="svg-spokes-front" stroke="#9ab4cd" stroke-width="1.4">
+          <line x1="-38" y1="0" x2="38" y2="0"/><line x1="0" y1="-38" x2="0" y2="38"/>
+          <line x1="-27" y1="-27" x2="27" y2="27"/><line x1="-27" y1="27" x2="27" y2="-27"/>
+        </g>
+        <circle r="5" fill="#ffbf00"/>
+      </g>
+
+      <!-- 链条与牙盘 (BB: 195, 202) -->
+      <polygon points="115,196 195,190 195,214 115,208" fill="none" stroke="#7f96ad" stroke-width="2" stroke-dasharray="4 3"/>
+
+      <!-- 标准钻石型自行车架 (Diamond Frame) -->
+      <g stroke="url(#frameGrad)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <!-- 后下叉 Chainstay & 后上叉 Seatstay -->
+        <line x1="115" y1="202" x2="195" y2="202"/>
+        <line x1="115" y1="202" x2="168" y2="132"/>
+        <!-- 立管 Seat tube & 下管 Down tube & 上管 Top tube -->
+        <line x1="195" y1="202" x2="168" y2="132"/>
+        <line x1="195" y1="202" x2="262" y2="136"/>
+        <line x1="168" y1="132" x2="258" y2="132"/>
+        <!-- 前叉 Fork & 车把立管 -->
+        <line x1="255" y1="120" x2="295" y2="202"/>
+      </g>
+      <!-- 车座 Saddle & 弯把 Handlebars -->
+      <path d="M152,128 Q168,122 184,130" fill="none" stroke="#ff3864" stroke-width="7" stroke-linecap="round"/>
+      <path d="M255,120 L248,104 L274,100" fill="none" stroke="#dce8f5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- 曲柄与牙盘 -->
+      <circle cx="195" cy="202" r="13" fill="#1b2a3d" stroke="#ffbf00" stroke-width="3"/>
+      <line id="svg-crank-front" x1="195" y1="202" x2="212" y2="215" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+
+      <!-- 鹈鹕身体、翅膀、长脖、大脑袋与标志性巨型橙色喉囊 -->
+      <g id="svg-pelican-body">
+        <!-- 随风飘动的红色飞行员围巾 -->
+        <path id="svg-scarf" d="M235,92 Q195,86 155,96 Q135,102 118,93" fill="none" stroke="#ff3864" stroke-width="7" stroke-linecap="round"/>
+        <!-- 尾羽与饱满白色身躯 -->
+        <polygon points="142,126 118,115 125,134" fill="#dce8f5"/>
+        <ellipse cx="184" cy="116" rx="42" ry="26" transform="rotate(-12 184 116)" fill="#f5f9ff" stroke="#c7d9ec" stroke-width="2"/>
+        <!-- 弯曲的S型长脖子 -->
+        <path d="M214,108 Q242,95 236,60" fill="none" stroke="#f5f9ff" stroke-width="18" stroke-linecap="round"/>
+        <!-- 翅膀握住车把 -->
+        <path d="M192,108 Q228,118 268,102" fill="none" stroke="#e2eefb" stroke-width="11" stroke-linecap="round"/>
+        <path d="M180,114 Q215,124 252,112" fill="none" stroke="#99b3cc" stroke-width="3" stroke-linecap="round"/>
+        <!-- 头部与复古防风镜 -->
+        <circle cx="240" cy="52" r="15" fill="#f5f9ff"/>
+        <path d="M227,39 L216,44 L228,48 Z" fill="#dce8f5"/>
+        <rect x="239" y="42" width="13" height="9" rx="4" fill="#00e5ff" stroke="#1b2636" stroke-width="2"/>
+        <circle cx="245" cy="46" r="2.2" fill="#05080f"/>
+        <!-- 巨型鹈鹕下颌喉囊 (Gular Pouch) + 里面露出的小鱼尾巴 -->
+        <path id="svg-pouch" d="M248,54 Q295,94 332,56 Z" fill="url(#pouchGrad)" stroke="#d9530f" stroke-width="2"/>
+        <!-- 喉囊里的小鱼尾巴 -->
+        <g id="svg-fish-in-pouch" transform="translate(306, 62) rotate(-18)">
+          <polygon points="0,0 14,-8 12,6" fill="#00e5ff"/>
+          <polygon points="13,-1 22,-7 20,5" fill="#00ff9d"/>
+        </g>
+        <!-- 上喙 (Upper Mandible) -->
+        <path d="M248,47 L336,52 L332,58 L248,55 Z" fill="#ffd24c" stroke="#e09b00" stroke-width="1.5"/>
+      </g>
+
+      <!-- 前腿 (近端腿，亮橙色，动态 IK 更新) -->
+      <polyline id="svg-leg-front" points="180,130 212,165 212,215" fill="none" stroke="#ff7b1a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <polygon id="svg-foot-front" points="204,215 228,215 216,207" fill="#ff7b1a"/>
+    </svg>
+  </div>
+  <div class="checklist">
+    <div>✅ 真实双三角形钻石车架</div>
+    <div>✅ 双圆解析 IK 脚掌锁死踏板</div>
+    <div>✅ 标志性橙色大喉囊 + 活鱼</div>
+    <div>✅ 翅膀扶把 + 飞行员围巾</div>
+  </div>
+</div>
+
+<!-- Bottom Interactive Control Bar -->
+<div class="hud-bottom">
+  <button class="ctrl-btn action" id="btn-boost">🌊 海风冲刺 (Boost)</button>
+  <button class="ctrl-btn active" id="btn-feed">🐟 空投喂鱼 (Catch Fish!)</button>
+  <button class="ctrl-btn" id="btn-ik">📐 显示 IK 骨骼解算</button>
+  <button class="ctrl-btn active" id="btn-svg-toggle">🖼️ 开关 SVG 展板</button>
+  <div class="slider-group">
+    <span>🚲 踩踏速度</span>
+    <input type="range" id="speed-slider" min="0.2" max="3.0" step="0.1" value="1.2">
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 1. 解析逆运动学 (2-Bone Analytical Inverse Kinematics) 求解器
+//    给定髋关节 H(hx, hy) 与脚踏板 P(px, py)，大腿长 L1，小腿长 L2，
+//    严格求膝关节 K(kx, ky)，保证脚掌 100% 焊死在脚踏板上！
+// ============================================================================
+function solveTwoBoneIK(hx, hy, px, py, L1, L2, bendDir = 1) {
+  let dx = px - hx, dy = py - hy;
+  let dist = Math.hypot(dx, dy);
+  const maxReach = L1 + L2 - 0.001;
+  const minReach = Math.abs(L1 - L2) + 0.001;
+  if (dist > maxReach) {
+    dx = (dx / dist) * maxReach;
+    dy = (dy / dist) * maxReach;
+    dist = maxReach;
+  } else if (dist < minReach) {
+    dist = minReach;
+  }
+
+  const baseAngle = Math.atan2(dy, dx);
+  const cosAngle1 = (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist);
+  const angle1 = Math.acos(Math.max(-1, Math.min(1, cosAngle1)));
+  const finalAngle = baseAngle + bendDir * angle1;
+
+  return {
+    kx: hx + Math.cos(finalAngle) * L1,
+    ky: hy + Math.sin(finalAngle) * L1,
+    px: hx + dx,
+    py: hy + dy
+  };
+}
+
+// ============================================================================
+// 2. 3D 渲染管线与海岸场景状态
+// ============================================================================
+const canvas = document.getElementById('stage-canvas');
+const ctx = canvas.getContext('2d');
+let W = window.innerWidth, H = window.innerHeight;
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// 交互状态
+let rotY = -0.32, rotX = 0.16, zoom = 1.05;
+let targetRotY = -0.32, targetRotX = 0.16, targetZoom = 1.05;
+let isDragging = false, lastMX = 0, lastMY = 0, pinchDist = 0;
+
+let speedMul = 1.2;
+let boostTimer = 0;
+let showIK = false;
+let showSVGPanel = window.innerWidth > 900;
+let fishCount = 2;
+let flyingFishes = [];
+let mouthOpen = 0;
+
+const svgShowcase = document.getElementById('svg-showcase');
+const btnSvgToggle = document.getElementById('btn-svg-toggle');
+if (!showSVGPanel) {
+  svgShowcase.classList.add('hidden-panel');
+  btnSvgToggle.classList.remove('active');
+}
+
+// 绑定按钮事件
+document.getElementById('speed-slider').oninput = e => {
+  speedMul = parseFloat(e.target.value);
+};
+document.getElementById('btn-boost').onclick = () => {
+  boostTimer = 1.8;
+};
+document.getElementById('btn-feed').onclick = () => {
+  flyingFishes.push({
+    x: 240, y: 150, z: 0,
+    vx: -3.6, vy: 2.2,
+    t: 0
+  });
+};
+document.getElementById('btn-ik').onclick = e => {
+  showIK = !showIK;
+  e.currentTarget.classList.toggle('active', showIK);
+};
+btnSvgToggle.onclick = () => {
+  showSVGPanel = !showSVGPanel;
+  svgShowcase.classList.toggle('hidden-panel', !showSVGPanel);
+  btnSvgToggle.classList.toggle('active', showSVGPanel);
+};
+
+// 鼠标与手机 Touch 手势
+canvas.addEventListener('mousedown', e => { isDragging = true; lastMX = e.clientX; lastMY = e.clientY; });
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  if (isDragging) {
+    targetRotY += (e.clientX - lastMX) * 0.007;
+    targetRotX = Math.max(-0.35, Math.min(0.75, targetRotX + (e.clientY - lastMY) * 0.006));
+    lastMX = e.clientX; lastMY = e.clientY;
+  }
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  targetZoom = Math.max(0.55, Math.min(2.1, targetZoom - e.deltaY * 0.001));
+}, { passive: false });
+
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    pinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 1 && isDragging) {
+    const cx = e.touches[0].clientX, cy = e.touches[0].clientY;
+    targetRotY += (cx - lastMX) * 0.0085;
+    targetRotX = Math.max(-0.35, Math.min(0.75, targetRotX + (cy - lastMY) * 0.007));
+    lastMX = cx; lastMY = cy;
+  } else if (e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    if (pinchDist > 0) targetZoom = Math.max(0.55, Math.min(2.1, targetZoom * (d / pinchDist)));
+    pinchDist = d;
+  }
+}, { passive: true });
+canvas.addEventListener('touchend', () => { isDragging = false; pinchDist = 0; }, { passive: true });
+
+// 3D 透视投影函数
+function project3D(x, y, z) {
+  const cy = Math.cos(rotY), sy = Math.sin(rotY);
+  let x1 = x * cy - z * sy;
+  let z1 = x * sy + z * cy;
+
+  const cx = Math.cos(rotX), sx = Math.sin(rotX);
+  let y2 = y * cx - z1 * sx;
+  let z2 = y * sx + z1 * cx;
+
+  const isMobile = W <= 900;
+  const baseFov = isMobile ? Math.min(540, W * 1.2) : 760;
+  const fov = baseFov * zoom;
+  const dist = 560;
+  const scale = fov / Math.max(100, dist + z2);
+
+  const centerX = (!isMobile && showSVGPanel) ? W * 0.37 : W * 0.50;
+  const centerY = isMobile ? H * 0.46 : H * 0.54;
+
+  return {
+    sx: centerX + x1 * scale,
+    sy: centerY - y2 * scale,
+    scale,
+    depth: z2
+  };
+}
+
+// 3D 基础图元绘制队列（支持按画家算法 Z-sort 深度排序）
+let drawQueue = [];
+function pushLine3D(p1, p2, color, width = 3, dash = []) {
+  const a = project3D(p1[0], p1[1], p1[2]);
+  const b = project3D(p2[0], p2[1], p2[2]);
+  drawQueue.push({
+    depth: (a.depth + b.depth) * 0.5,
+    draw: () => {
+      ctx.beginPath();
+      if (dash.length) ctx.setLineDash(dash);
+      ctx.moveTo(a.sx, a.sy);
+      ctx.lineTo(b.sx, b.sy);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1, width * ((a.scale + b.scale) * 0.5));
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      if (dash.length) ctx.setLineDash([]);
+    }
+  });
+}
+
+function pushSphere3D(pt, radius, color, outline = null) {
+  const p = project3D(pt[0], pt[1], pt[2]);
+  drawQueue.push({
+    depth: p.depth,
+    draw: () => {
+      const r = Math.max(1.5, radius * p.scale);
+      const grad = ctx.createRadialGradient(p.sx - r * 0.28, p.sy - r * 0.28, r * 0.1, p.sx, p.sy, r);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.28, color);
+      grad.addColorStop(1, shadeColor(color, -32));
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      if (outline) {
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1.5 * p.scale;
+        ctx.stroke();
+      }
+    }
+  });
+}
+
+function pushPolygon3D(pts, fillColor, strokeColor = null, width = 1.5) {
+  const projs = pts.map(p => project3D(p[0], p[1], p[2]));
+  const avgDepth = projs.reduce((s, p) => s + p.depth, 0) / projs.length;
+  drawQueue.push({
+    depth: avgDepth,
+    draw: () => {
+      ctx.beginPath();
+      projs.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.sx, p.sy);
+        else ctx.lineTo(p.sx, p.sy);
+      });
+      ctx.closePath();
+      if (fillColor) { ctx.fillStyle = fillColor; ctx.fill(); }
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = width * projs[0].scale;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+    }
+  });
+}
+
+function shadeColor(col, amt) {
+  if (!col.startsWith('#') || col.length !== 7) return col;
+  let num = parseInt(col.slice(1), 16);
+  let r = Math.min(255, Math.max(0, (num >> 16) + amt));
+  let g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+  let b = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+// ============================================================================
+// 3. 3D 自行车 + 3D 鹈鹕 + 同步 SVG 更新主循环
+// ============================================================================
+let crankAngle = 0;
+let wheelAngle = 0;
+let roadOffset = 0;
+
+function updateSVG(crankA, bodyBob) {
+  // 1. 旋转前后轮辐条
+  const deg = (wheelAngle * 180 / Math.PI) % 360;
+  document.getElementById('svg-spokes-rear').setAttribute('transform', `rotate(${deg})`);
+  document.getElementById('svg-spokes-front').setAttribute('transform', `rotate(${deg})`);
+
+  // 2. 公路虚线滚动
+  const dashShift = (roadOffset * 2.2) % 110;
+  document.getElementById('svg-road-dashes').setAttribute('transform', `translate(${-dashShift}, 0)`);
+
+  // 3. SVG 2D IK 解算 (BB 在 195,202, 曲柄半径 18, 髋关节在 182,126)
+  const r = 18;
+  const pfx = 195 + Math.cos(crankA) * r;
+  const pfy = 202 + Math.sin(crankA) * r;
+  const pbx = 195 + Math.cos(crankA + Math.PI) * r;
+  const pby = 202 + Math.sin(crankA + Math.PI) * r;
+
+  const hipX = 182, hipY = 126 + bodyBob * 0.5;
+  // 膝盖向前弯曲 (bendDir = -1 在屏幕 Y 向下坐标系中朝右上方凸出)
+  const ikFront = solveTwoBoneIK(hipX, hipY, pfx, pfy, 48, 48, -1);
+  const ikBack  = solveTwoBoneIK(hipX, hipY, pbx, pby, 48, 48, -1);
+
+  document.getElementById('svg-crank-front').setAttribute('x2', pfx.toFixed(1));
+  document.getElementById('svg-crank-front').setAttribute('y2', pfy.toFixed(1));
+
+  document.getElementById('svg-leg-front').setAttribute('points',
+    `${hipX},${hipY.toFixed(1)} ${ikFront.kx.toFixed(1)},${ikFront.ky.toFixed(1)} ${pfx.toFixed(1)},${pfy.toFixed(1)}`
+  );
+  document.getElementById('svg-foot-front').setAttribute('points',
+    `${(pfx - 8).toFixed(1)},${(pfy + 2).toFixed(1)} ${(pfx + 18).toFixed(1)},${(pfy + 2).toFixed(1)} ${(pfx + 4).toFixed(1)},${(pfy - 6).toFixed(1)}`
+  );
+
+  document.getElementById('svg-leg-back').setAttribute('points',
+    `${hipX},${hipY.toFixed(1)} ${ikBack.kx.toFixed(1)},${ikBack.ky.toFixed(1)} ${pbx.toFixed(1)},${pby.toFixed(1)}`
+  );
+  document.getElementById('svg-foot-back').setAttribute('points',
+    `${(pbx - 8).toFixed(1)},${(pby + 2).toFixed(1)} ${(pbx + 18).toFixed(1)},${(pby + 2).toFixed(1)} ${(pbx + 4).toFixed(1)},${(pby - 6).toFixed(1)}`
+  );
+
+  document.getElementById('svg-pelican-body').setAttribute('transform', `translate(0, ${(bodyBob * 0.6).toFixed(1)})`);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (boostTimer > 0) boostTimer = Math.max(0, boostTimer - 0.02);
+  const effSpeed = speedMul * (1 + boostTimer * 1.4);
+  crankAngle += 0.065 * effSpeed;
+  wheelAngle += 0.14 * effSpeed;
+  roadOffset += 3.5 * effSpeed;
+
+  const rpm = Math.round(effSpeed * 76);
+  document.getElementById('val-rpm').textContent = `${rpm} RPM`;
+
+  rotX += (targetRotX - rotX) * 0.09;
+  rotY += (targetRotY - rotY) * 0.09;
+  zoom += (targetZoom - zoom) * 0.09;
+
+  ctx.clearRect(0, 0, W, H);
+  drawQueue = [];
+
+  // --------------------------------------------------------------------------
+  // A. 绘制 3D 海岸公路与棕榈霓虹网格
+  // --------------------------------------------------------------------------
+  const groundY = -102;
+  for (let z = -120; z <= 120; z += 40) {
+    pushLine3D([-260, groundY, z], [260, groundY, z], 'rgba(0, 229, 255, 0.14)', 1.2);
+  }
+  const stripeCycle = 80;
+  const shift = roadOffset % stripeCycle;
+  for (let x = -240; x <= 260; x += stripeCycle) {
+    const sx = x - shift;
+    pushLine3D([sx, groundY + 1, 0], [sx + 36, groundY + 1, 0], 'rgba(255, 191, 0, 0.75)', 4);
+  }
+
+  // --------------------------------------------------------------------------
+  // B. 绘制 3D 钻石车架自行车 (真圆车轮 + 双三角车架 + 双侧曲柄踏板)
+  // --------------------------------------------------------------------------
+  const rearHub  = [-95, -52, 0];
+  const frontHub = [105, -52, 0];
+  const bb       = [-10, -52, 0]; // 五通中轴 Bottom Bracket
+  const seatTop  = [-38, 26, 0];  // 座管顶点
+  const headTop  = [66, 28, 0];   // 头管顶点
+  const wheelR   = 48;
+
+  // 绘制 3D 轮胎与 12 根旋转辐条
+  function buildWheel3D(cx, cy, r, angleOffset) {
+    const segs = 28;
+    for (let i = 0; i < segs; i++) {
+      const a0 = (i / segs) * Math.PI * 2;
+      const a1 = ((i + 1) / segs) * Math.PI * 2;
+      const p0 = [cx + Math.cos(a0) * r, cy + Math.sin(a0) * r, 0];
+      const p1 = [cx + Math.cos(a1) * r, cy + Math.sin(a1) * r, 0];
+      pushLine3D(p0, p1, '#1b2838', 9);
+      pushLine3D(p0, p1, '#00e5ff', 2.2);
+    }
+    for (let s = 0; s < 8; s++) {
+      const sa = angleOffset + (s / 8) * Math.PI * 2;
+      pushLine3D([cx, cy, -4], [cx + Math.cos(sa) * (r - 4), cy + Math.sin(sa) * (r - 4), 0], 'rgba(200,225,245,0.65)', 1.5);
+      pushLine3D([cx, cy,  4], [cx + Math.cos(sa) * (r - 4), cy + Math.sin(sa) * (r - 4), 0], 'rgba(200,225,245,0.65)', 1.5);
+    }
+    pushSphere3D([cx, cy, 0], 6.5, '#ffbf00');
+  }
+  buildWheel3D(rearHub[0], rearHub[1], wheelR, -wheelAngle);
+  buildWheel3D(frontHub[0], frontHub[1], wheelR, -wheelAngle);
+
+  // 后叉 (左/右双侧对称 Z = -10 .. +10)
+  [-10, 10].forEach(zSide => {
+    pushLine3D([rearHub[0], rearHub[1], zSide], [bb[0], bb[1], zSide * 0.7], '#00b8ff', 4.5);
+    pushLine3D([rearHub[0], rearHub[1], zSide], [seatTop[0], seatTop[1], 0], '#00b8ff', 4.0);
+    // 前叉左/右腿
+    pushLine3D([frontHub[0], frontHub[1], zSide], [headTop[0], headTop[1], 0], '#00e5ff', 4.8);
+  });
+
+  // 主三角车架 (立管、下管、上管)
+  pushLine3D(bb, seatTop, '#00e5ff', 6.5);
+  pushLine3D(bb, [headTop[0], headTop[1] - 8, 0], '#00e5ff', 6.5);
+  pushLine3D(seatTop, headTop, '#00e5ff', 6.0);
+
+  // 车座 (Saddle)
+  pushLine3D([seatTop[0] - 16, seatTop[1] + 6, 0], [seatTop[0] + 14, seatTop[1] + 4, 0], '#ff3864', 9);
+
+  // 车把立管与燕把 (Handlebars Z = -36 .. +36)
+  const stemTop = [headTop[0] - 6, headTop[1] + 24, 0];
+  pushLine3D(headTop, stemTop, '#dce8f5', 5.5);
+  const gripR = [stemTop[0] - 8, stemTop[1] + 4, 34];
+  const gripL = [stemTop[0] - 8, stemTop[1] + 4, -34];
+  pushLine3D(stemTop, gripR, '#dce8f5', 5);
+  pushLine3D(stemTop, gripL, '#dce8f5', 5);
+  pushSphere3D(gripR, 5, '#ff3864');
+  pushSphere3D(gripL, 5, '#ff3864');
+
+  // 曲柄与左右脚踏板 (Crank & Pedals)
+  const crankR = 22;
+  // 右踏板 (Z = +18)，左踏板 (Z = -18，相位差 180°)
+  const pedalR = [
+    bb[0] + Math.cos(-crankAngle) * crankR,
+    bb[1] + Math.sin(-crankAngle) * crankR,
+    18
+  ];
+  const pedalL = [
+    bb[0] + Math.cos(-crankAngle + Math.PI) * crankR,
+    bb[1] + Math.sin(-crankAngle + Math.PI) * crankR,
+    -18
+  ];
+  pushSphere3D([bb[0], bb[1], 8], 11, '#ffbf00');
+  pushLine3D([bb[0], bb[1], 12], pedalR, '#ffffff', 4.5);
+  pushLine3D([bb[0], bb[1], -12], pedalL, '#a0b9d0', 4.5);
+  pushLine3D([pedalR[0] - 7, pedalR[1], pedalR[2]], [pedalR[0] + 7, pedalR[1], pedalR[2]], '#ffbf00', 6);
+  pushLine3D([pedalL[0] - 7, pedalL[1], pedalL[2]], [pedalL[0] + 7, pedalL[1], pedalL[2]], '#ffbf00', 6);
+
+  // --------------------------------------------------------------------------
+  // C. 绘制 3D 鹈鹕 (带双腿解析 IK + 鼓鼓的橙色喉囊 + 翅膀扶车把 + 飞行员风镜)
+  // --------------------------------------------------------------------------
+  const bodyBob = Math.sin(crankAngle * 2) * 3.8;
+  const hipCenter = [seatTop[0] + 2, seatTop[1] + 18 + bodyBob, 0];
+  const hipR = [hipCenter[0], hipCenter[1], 16];
+  const hipL = [hipCenter[0], hipCenter[1], -16];
+
+  // 求解左右腿 2-Bone IK (大腿 L1=50, 小腿 L2=52，膝盖朝前上方 +X/+Y 弯曲)
+  const ikR = solveTwoBoneIK(hipR[0], hipR[1], pedalR[0], pedalR[1], 50, 52, 1);
+  const ikL = solveTwoBoneIK(hipL[0], hipL[1], pedalL[0], pedalL[1], 50, 52, 1);
+  const kneeR = [ikR.kx, ikR.ky, 18];
+  const kneeL = [ikL.kx, ikL.ky, -18];
+
+  // 绘制双腿与大鸭蹼脚掌 (Webbed Pelican Feet 严丝合缝踩在踏板上!)
+  function drawPelicanLeg(hip, knee, pedal, col) {
+    pushLine3D(hip, knee, col, 7.5);
+    pushLine3D(knee, pedal, col, 6.5);
+    pushSphere3D(knee, 5.5, col);
+    // 三角形大蹼掌贴在踏板上
+    pushPolygon3D([
+      [pedal[0] - 6, pedal[1] + 2, pedal[2] - 5],
+      [pedal[0] + 20, pedal[1] + 1, pedal[2] + 6],
+      [pedal[0] + 18, pedal[1] + 4, pedal[2] - 6]
+    ], col, '#d9530f', 1.2);
+  }
+  drawPelicanLeg(hipL, kneeL, pedalL, '#d45b12');
+  drawPelicanLeg(hipR, kneeR, pedalR, '#ff7b1a');
+
+  // 如果开启了「显示 IK 骨骼解算」，画出青色几何解算圆与直角辅助线
+  if (showIK) {
+    pushLine3D(hipR, pedalR, 'rgba(0, 229, 255, 0.75)', 2, [4, 4]);
+    pushSphere3D(hipR, 7, '#00ff9d', '#ffffff');
+    pushSphere3D(kneeR, 7, '#00e5ff', '#ffffff');
+    pushSphere3D(pedalR, 7, '#ff3864', '#ffffff');
+  }
+
+  // 鹈鹕丰满圆润的白色身体 (由多颗渐变球体组成流线型鸟身)
+  const torsoPts = [
+    [hipCenter[0] - 22, hipCenter[1] + 8, 0, 18],
+    [hipCenter[0] - 6,  hipCenter[1] + 12, 0, 28],
+    [hipCenter[0] + 14, hipCenter[1] + 18, 0, 31],
+    [hipCenter[0] + 32, hipCenter[1] + 26, 0, 25]
+  ];
+  torsoPts.forEach(([x, y, z, r]) => pushSphere3D([x, y, z], r, '#f2f7fd'));
+
+  // 翘起的小尾羽
+  pushPolygon3D([
+    [hipCenter[0] - 32, hipCenter[1] + 10, -8],
+    [hipCenter[0] - 56, hipCenter[1] + 22, 0],
+    [hipCenter[0] - 32, hipCenter[1] + 14, 8]
+  ], '#dce8f5', '#9ab4cd');
+
+  // 左右翅膀扶住左右车把 (Wings gripping handlebars)
+  const shoulderR = [hipCenter[0] + 24, hipCenter[1] + 28, 22];
+  const shoulderL = [hipCenter[0] + 24, hipCenter[1] + 28, -22];
+  const elbowR    = [hipCenter[0] + 46, hipCenter[1] + 12, 30];
+  const elbowL    = [hipCenter[0] + 46, hipCenter[1] + 12, -30];
+  pushLine3D(shoulderR, elbowR, '#ffffff', 12);
+  pushLine3D(elbowR, gripR, '#e2eefb', 9);
+  pushLine3D(shoulderL, elbowL, '#dce8f5', 12);
+  pushLine3D(elbowL, gripL, '#c8dced', 9);
+
+  // 随风飘动的红色飞行员围巾 (Scarf)
+  const neckBase = [hipCenter[0] + 38, hipCenter[1] + 38, 0];
+  for (let i = 0; i < 6; i++) {
+    const sx0 = neckBase[0] - 10 - i * 14;
+    const sy0 = neckBase[1] - 2 + Math.sin(crankAngle * 3 - i * 0.9) * (4 + i * 2);
+    const sx1 = neckBase[0] - 10 - (i + 1) * 14;
+    const sy1 = neckBase[1] - 2 + Math.sin(crankAngle * 3 - (i + 1) * 0.9) * (4 + (i + 1) * 2);
+    pushLine3D([sx0, sy0, 12], [sx1, sy1, 14], '#ff3864', 7 - i * 0.7);
+  }
+
+  // S 型修长脖子与脑袋
+  const neckMid = [neckBase[0] + 8, neckBase[1] + 24, 0];
+  const headPos = [neckBase[0] + 6, neckBase[1] + 48 + Math.sin(crankAngle * 2) * 2, 0];
+  pushLine3D(neckBase, neckMid, '#f2f7fd', 17);
+  pushLine3D(neckMid, headPos, '#f2f7fd', 15);
+  pushSphere3D(headPos, 17, '#f8fbff');
+
+  // 飞行员护目镜 (Aviator Goggles)
+  pushSphere3D([headPos[0] + 12, headPos[1] + 4, 9], 6, '#00e5ff', '#1b2636');
+  pushSphere3D([headPos[0] + 12, headPos[1] + 4, -9], 6, '#00e5ff', '#1b2636');
+
+  // --------------------------------------------------------------------------
+  // D. 标志性巨型鹈鹕长喙 + 橙色大喉囊 (Gular Pouch) + 飞鱼投喂互动
+  // --------------------------------------------------------------------------
+  if (mouthOpen > 0) mouthOpen = Math.max(0, mouthOpen - 0.04);
+
+  const beakBase = [headPos[0] + 12, headPos[1] - 2, 0];
+  const beakTip  = [headPos[0] + 102, headPos[1] - 6 + mouthOpen * 16, 0];
+  const jawTip   = [headPos[0] + 98, headPos[1] - 10 - mouthOpen * 22, 0];
+  const pouchBelly = [headPos[0] + 56, headPos[1] - 42 - mouthOpen * 18 + Math.sin(crankAngle * 2) * 4, 0];
+
+  // 上喙 (金黄色长三角顶盖)
+  pushPolygon3D([
+    [beakBase[0], beakBase[1] + 5, -9],
+    [beakBase[0], beakBase[1] + 5,  9],
+    beakTip
+  ], '#ffd24c', '#e09b00', 1.5);
+
+  // 巨型立体橙色喉囊 (左右两片饱满多边形兜袋)
+  const pouchLeft  = [headPos[0] + 52, pouchBelly[1] + 6, -15];
+  const pouchRight = [headPos[0] + 52, pouchBelly[1] + 6,  15];
+
+  pushPolygon3D([beakBase, jawTip, pouchBelly, pouchRight], '#ff7b1a', '#d9530f', 1.5);
+  pushPolygon3D([beakBase, jawTip, pouchBelly, pouchLeft],  '#ff6210', '#d9530f', 1.5);
+  pushPolygon3D([[beakBase[0], beakBase[1], 11], jawTip, pouchRight], '#ff9429', '#e06010', 1.2);
+  pushPolygon3D([[beakBase[0], beakBase[1], -11], jawTip, pouchLeft], '#ff8520', '#e06010', 1.2);
+
+  // 喉囊里探出头/甩尾巴的活鱼
+  const fishTailWave = Math.sin(crankAngle * 5) * 8;
+  pushPolygon3D([
+    [headPos[0] + 66, pouchBelly[1] + 18, 4],
+    [headPos[0] + 84, pouchBelly[1] + 30, 4 + fishTailWave],
+    [headPos[0] + 78, pouchBelly[1] + 14, 4 + fishTailWave]
+  ], '#00e5ff', '#00ff9d', 1.2);
+
+  // 处理空投飞鱼动画
+  for (let i = flyingFishes.length - 1; i >= 0; i--) {
+    const f = flyingFishes[i];
+    f.t += 0.04;
+    f.x += f.vx;
+    f.y += f.vy;
+    f.vy -= 0.16; // 重力抛物线
+    if (f.x < beakTip[0] + 45) mouthOpen = 1.0;
+
+    pushSphere3D([f.x, f.y, f.z], 7, '#00e5ff');
+    pushPolygon3D([
+      [f.x + 6, f.y, 0],
+      [f.x + 18, f.y + 7, Math.sin(f.t * 15) * 6],
+      [f.x + 18, f.y - 7, Math.sin(f.t * 15) * 6]
+    ], '#00ff9d');
+
+    // 掉进大嘴喉囊判定
+    if (Math.hypot(f.x - (headPos[0] + 65), f.y - (headPos[1] - 18)) < 32 || f.y < groundY) {
+      if (f.y >= groundY) {
+        fishCount++;
+        document.getElementById('val-fish').textContent = `${fishCount} 条 🐟`;
+      }
+      flyingFishes.splice(i, 1);
+    }
+  }
+
+  // 按深度从远到近执行绘制
+  drawQueue.sort((a, b) => b.depth - a.depth);
+  drawQueue.forEach(item => item.draw());
+
+  // 同步更新右上角 SVG 基准动画
+  updateSVG(-crankAngle, bodyBob);
+}
+
+animate();
+</script>
+</body>
+</html>

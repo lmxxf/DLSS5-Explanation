@@ -1,6 +1,7 @@
 # DLSS 5 交互式架构拆解与 RDNA4 (`gfx1201`) 算子优化实战教程
 
 👉 **在线交互式 3D 教程体验地址（GitHub Pages）：[https://lmxxf.github.io/DLSS5-Explanation/](https://lmxxf.github.io/DLSS5-Explanation/)**
+🦩 **彩蛋 AI 基准展台（鹈鹕骑车 3D IK + 动态 SVG）：[https://lmxxf.github.io/DLSS5-Explanation/AIDemo/PelicanCycling/](https://lmxxf.github.io/DLSS5-Explanation/AIDemo/PelicanCycling/)**
 
 ---
 
