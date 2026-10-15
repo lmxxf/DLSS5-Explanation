@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Spatio-Temporal Fourier Epicycle Pelican · 时空傅里叶本轮骑车鹈鹕</title>
+<style>
+  :root {
+    --bg0: #030712;
+    --bg1: #071124;
+    --cyan: #8ce8ff;
+    --cyan-glow: #38bdf8;
+    --gold: #fbbf24;
+    --gold-dim: rgba(251, 191, 36, 0.42);
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  html, body {
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at 46% 42%, #0c1b33 0%, #050b18 65%, #02050b 100%);
+    color: var(--text);
+    font-family: 'Times New Roman', 'STIX Two Math', 'Cambria Math', Georgia, serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top subtle bar */
+  .top-nav {
+    position: absolute;
+    top: 12px; left: 16px; right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 20;
+    pointer-events: none;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .top-nav > * { pointer-events: auto; }
+  .back-link {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--cyan);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(7, 17, 36, 0.78);
+    border: 1px solid rgba(140, 232, 255, 0.28);
+    backdrop-filter: blur(8px);
+    transition: all 0.2s;
+  }
+  .back-link:hover {
+    border-color: var(--gold);
+    color: #fff;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+  }
+
+  .ctrl-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: rgba(6, 14, 29, 0.82);
+    border: 1px solid rgba(140, 232, 255, 0.24);
+    padding: 6px 12px;
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 12px;
+  }
+  .btn {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(140, 232, 255, 0.32);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover, .btn.active {
+    background: rgba(251, 191, 36, 0.22);
+    border-color: var(--gold);
+    color: #fff;
+  }
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .slider-wrap input[type=range] {
+    width: 84px;
+    accent-color: var(--gold);
+    cursor: pointer;
+  }
+
+  /* Canvas stage */
+  .stage {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Bottom Mathematical HUD matching the reference screenshot */
+  .math-hud {
+    position: absolute;
+    left: 0; right: 0; bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 15;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    padding: 0 12px;
+  }
+  .hud-row1 {
+    font-size: clamp(20px, 3.2vw, 31px);
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+  }
+  .hud-row1 .n-sym { color: #e2e8f0; font-style: italic; }
+  .hud-row1 .n-val { color: #7dd3fc; font-weight: 600; text-shadow: 0 0 14px rgba(56, 189, 248, 0.55); }
+  .hud-row1 .dot-sep { color: #64748b; font-size: 0.7em; }
+  .hud-row1 .psi-sym { color: #fbbf24; font-style: italic; text-shadow: 0 0 14px rgba(251, 191, 36, 0.45); }
+  .hud-row1 .psi-val { color: #fbbf24; font-weight: 600; text-shadow: 0 0 14px rgba(251, 191, 36, 0.45); }
+
+  .hud-row2 {
+    font-size: clamp(12px, 1.6vw, 16.5px);
+    color: #94a3b8;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .hud-row3 {
+    font-size: clamp(11px, 1.35vw, 14px);
+    color: #cbd5e1;
+    letter-spacing: 0.03em;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    opacity: 0.9;
+  }
+  .hud-row3 .math-gold { color: #fde68a; font-style: italic; }
+  .hud-row3 .math-cyan { color: #bae6fd; font-style: italic; }
+
+  /* Bottom right audio toggle button like video player */
+  .audio-fab {
+    position: absolute;
+    right: 22px;
+    bottom: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(10, 18, 34, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 25;
+    font-size: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    transition: all 0.2s;
+  }
+  .audio-fab:hover {
+    border-color: var(--gold);
+    transform: scale(1.06);
+  }
+  .audio-fab.playing {
+    border-color: var(--cyan);
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+  }
+
+  .time-badge {
+    position: absolute;
+    left: 22px;
+    bottom: 22px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(8, 13, 24, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+    z-index: 25;
+    pointer-events: none;
+  }
+
+  @media (max-width: 720px) {
+    .top-nav { top: 8px; left: 8px; right: 8px; }
+    .ctrl-bar { padding: 5px 8px; gap: 5px; font-size: 11px; }
+    .slider-wrap input[type=range] { width: 64px; }
+    .math-hud { bottom: 12px; }
+    .time-badge { left: 12px; bottom: 12px; font-size: 11px; }
+    .audio-fab { right: 12px; bottom: 12px; width: 34px; height: 34px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-nav">
+  <a class="back-link" href="../index.html">◀ 返回陈列馆</a>
+  <div class="ctrl-bar">
+    <div class="slider-wrap">
+      <span>阶数 <i>N</i></span>
+      <input id="nSlider" type="range" min="0" max="8" step="1" value="8" title="调节傅里叶本轮谐波阶数 N">
+    </div>
+    <button id="btnSweepN" class="btn" title="演示从 N=8 逐步收敛到 N=1024 的傅里叶逼近过程">✨ 升阶收敛演示</button>
+    <button id="btnTraceMode" class="btn active" title="开启/关闭傅里叶旋转本轮圆环群显示">🟡 傅里叶本轮群</button>
+    <button id="btnPause" class="btn" title="暂停/继续时空相位">⏸ 暂停</button>
+  </div>
+</div>
+
+<div class="stage">
+  <canvas id="fourierCanvas"></canvas>
+</div>
+
+<div class="time-badge" id="timeBadge">0:32</div>
+
+<div class="math-hud">
+  <div class="hud-row1">
+    <span><span class="n-sym">N</span> = <span class="n-val" id="hudN">1024</span></span>
+    <span class="dot-sep">·</span>
+    <span><span class="psi-sym">&psi;</span> = <span class="psi-val" id="hudPsi">135&deg;</span></span>
+  </div>
+  <div class="hud-row2">
+    <span id="hudModes">2,049 Spatio-Temporal modes</span>
+    <span>&middot;</span>
+    <span>cadence = 100 BPM</span>
+    <span>&middot;</span>
+    <span id="hudErr">error = 0.33%</span>
+  </div>
+  <div class="hud-row3">
+    <span class="math-gold">z(s, &psi;) = &sum; c<sub>k</sub>(&psi;) e<sup>i k s</sup></span>
+    <span class="math-cyan">&theta;<sub>wheel</sub> = &minus;2&psi;</span>
+    <span>2-Bone IK Pelican Legs</span>
+  </div>
+</div>
+
+<button class="audio-fab" id="btnAudio" title="开启/关闭 100 BPM 同步数学八音盒配乐 (Lyria 风格)">🔇</button>
+
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('fourierCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const hudN = document.getElementById('hudN');
+  const hudPsi = document.getElementById('hudPsi');
+  const hudModes = document.getElementById('hudModes');
+  const hudErr = document.getElementById('hudErr');
+  const nSlider = document.getElementById('nSlider');
+  const btnSweepN = document.getElementById('btnSweepN');
+  const btnTraceMode = document.getElementById('btnTraceMode');
+  const btnPause = document.getElementById('btnPause');
+  const btnAudio = document.getElementById('btnAudio');
+  const timeBadge = document.getElementById('timeBadge');
+
+  const N_STEPS = [8, 16, 32, 64, 128, 256, 512, 768, 1024];
+  const TOTAL_SAMPLES = 2048; // Power of 2 for fast Radix-2 FFT!
+
+  let currentN = 1024;
+  let psiDeg = 135.0;        // Start at 135 deg like the screenshot
+  let sParam = 0.72;         // Epicycle pen parameter s in [0, 1)
+  let paused = false;
+  let showEpicycles = true;
+  let sweepActive = false;
+  let sweepTimer = 0;
+  let elapsedSec = 32.0;
+
+  // Starfield background particles
+  const stars = [];
+  for (let i = 0; i < 140; i++) {
+    stars.push({
+      x: Math.random(),
+      y: Math.random(),
+      r: 0.4 + Math.random() * 1.3,
+      a: 0.12 + Math.random() * 0.45,
+      twinkle: Math.random() * Math.PI * 2
+    });
+  }
+
+  // =========================================================================
+  // 1. 2-BONE INVERSE KINEMATICS (IK) FOR PELICAN LEGS
+  // =========================================================================
+  function solve2BoneIK(hipX, hipY, ankleX, ankleY, L1, L2, kneeForwardSign) {
+    const dx = ankleX - hipX;
+    const dy = ankleY - hipY;
+    let d = Math.hypot(dx, dy);
+    const maxReach = (L1 + L2) * 0.995;
+    const minReach = Math.abs(L1 - L2) * 1.05;
+    if (d > maxReach) d = maxReach;
+    if (d < minReach) d = minReach;
+
+    const cosA = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d);
+    const clampedCos = Math.max(-1, Math.min(1, cosA));
+    const angleToTarget = Math.atan2(dy, dx);
+    const kneeAngleOffset = kneeForwardSign * Math.acos(clampedCos);
+
+    const thighAngle = angleToTarget - kneeAngleOffset;
+    const kneeX = hipX + L1 * Math.cos(thighAngle);
+    const kneeY = hipY + L1 * Math.sin(thighAngle);
+    return { kneeX, kneeY };
+  }
+
+  // =========================================================================
+  // 2. PROCEDURAL CONTINUOUS CLOSED GRAPH GENERATOR FOR BICYCLE + PELICAN
+  //    Generates an ordered list of 2D polylines and builds an Eulerian-style
+  //    continuous closed loop z(s, psi) with 2048 arc-length-parameterized samples.
+  // =========================================================================
+  function cubicBezier(p0, p1, p2, p3, steps) {
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const u = 1 - t;
+      const x = u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0];
+      const y = u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1];
+      pts.push([x, y]);
+    }
+    return pts;
+  }
+
+  function quadBezier(p0, p1, p2, steps) {
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const u = 1 - t;
+      pts.push([
+        u*u*p0[0] + 2*u*t*p1[0] + t*t*p2[0],
+        u*u*p0[1] + 2*u*t*p1[1] + t*t*p2[1]
+      ]);
+    }
+    return pts;
+  }
+
+  function arcPoints(cx, cy, r, a0, a1, steps) {
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = a0 + (a1 - a0) * (i / steps);
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    return pts;
+  }
+
+  function buildPelicanBicycleContour(psiRad) {
+    // Coordinate system centered at (0, 0), scale ~ [-240, 240]
+    const wheelTheta = -2.0 * psiRad; // theta_wheel = -2 * psi
+    const bob = Math.sin(psiRad * 2) * 2.2;
+    const headBob = Math.sin(psiRad * 2 - 0.5) * 1.8;
+
+    // Key anchors (matching fofr screenshot proportions closely)
+    const rearWheel = [-116, 86];
+    const frontWheel = [116, 86];
+    const wheelR = 66;
+    const tireInnerR = 57;
+    const hubR = 7;
+
+    const bb = [-12, 86]; // Bottom bracket (crank center)
+    const seatPostTop = [-48, -6];
+    const saddlePos = [-54, -12 + bob * 0.3];
+    const headTubeTop = [68, -14];
+    const headTubeBot = [80, 14];
+    const stemTop = [60, -34 + bob * 0.2];
+    const handleGrip = [38, -32 + bob * 0.4];
+
+    // Crank & Pedals (radius 27)
+    const crankR = 27;
+    const pedal1 = [
+      bb[0] + crankR * Math.cos(psiRad),
+      bb[1] + crankR * Math.sin(psiRad)
+    ];
+    const pedal2 = [
+      bb[0] + crankR * Math.cos(psiRad + Math.PI),
+      bb[1] + crankR * Math.sin(psiRad + Math.PI)
+    ];
+
+    // Pelican Hip & 2-Bone IK Legs
+    const hip = [-44, -22 + bob];
+    const L1 = 56, L2 = 58;
+    const ikNear = solve2BoneIK(hip[0], hip[1], pedal1[0], pedal1[1] - 4, L1, L2, 1);
+    const ikFar  = solve2BoneIK(hip[0] + 6, hip[1] + 2, pedal2[0], pedal2[1] - 4, L1, L2, 1);
+
+    const path = [];
+    const append = (pts) => {
+      for (let i = 0; i < pts.length; i++) path.push(pts[i]);
+    };
+
+    // 1. PELICAN HEAD, CREST, LONG BEAK & GULAR POUCH
+    const neckBase = [12, -52 + bob];
+    const headTop = [-4, -148 + headBob];
+    const beakTip = [122, -80 + headBob * 1.1];
+    const beakMid = [58, -108 + headBob];
+    const pouchBottom = [44, -84 + headBob];
+    const throat = [6, -110 + headBob];
+
+    // Start at back of neck -> head crest
+    append(cubicBezier(
+      [-26, -64 + bob],
+      [-4, -86 + bob],
+      [-28, -126 + headBob],
+      [-18, -142 + headBob],
+      28
+    ));
+    // Tufted crest feathers (3 crisp spikes)
+    append([
+      [-18, -142 + headBob],
+      [-27, -149 + headBob],
+      [-14, -146 + headBob],
+      [-22, -155 + headBob],
+      [-9, -150 + headBob],
+      [2, -148 + headBob]
+    ]);
+    // Eye loop excursion
+    const eyeC = [10, -135 + headBob];
+    append(arcPoints(eyeC[0], eyeC[1], 4.2, -Math.PI * 0.7, Math.PI * 1.3, 14));
+    // Upper culmen of long pelican beak
+    append(cubicBezier(
+      [14, -140 + headBob],
+      [54, -120 + headBob],
+      [96, -96 + headBob],
+      beakTip,
+      36
+    ));
+    // Hooked tip & mouth split line back and forth
+    append(quadBezier(beakTip, [64, -106 + headBob], [18, -124 + headBob], 24));
+    append(quadBezier([18, -124 + headBob], [64, -104 + headBob], [118, -79 + headBob], 22));
+    // Gular pouch underside
+    append(cubicBezier(
+      [118, -79 + headBob],
+      [82, -82 + headBob],
+      pouchBottom,
+      throat,
+      32
+    ));
+    // Pouch internal striations
+    append(quadBezier(throat, [42, -92 + headBob], [88, -86 + headBob], 16));
+    append(quadBezier([88, -86 + headBob], [44, -98 + headBob], throat, 16));
+
+    // 2. S-CURVE FRONT NECK & BREAST TO WING
+    append(cubicBezier(
+      throat,
+      [-8, -90 + bob],
+      [28, -68 + bob],
+      [18, -42 + bob],
+      28
+    ));
+
+    // 3. SCULPTED FEATHERED WING REACHING TO HANDLEBAR
+    const shoulder = [-24, -56 + bob];
+    append(cubicBezier([18, -42 + bob], [4, -56 + bob], [-10, -60 + bob], shoulder, 20));
+    // Upper wing arch to handlebar grip
+    append(cubicBezier(
+      shoulder,
+      [-58, -46 + bob],
+      [-78, -18 + bob],
+      [-82, 2 + bob],
+      26
+    ));
+    // Wing covert feather scallops (layered plumage)
+    const fBaseX = -78, fBaseY = -4 + bob;
+    for (let k = 0; k < 6; k++) {
+      const x0 = fBaseX + k * 11;
+      const y0 = fBaseY - k * 2.5;
+      append(quadBezier([x0, y0], [x0 - 4, y0 + 18], [x0 + 6, y0 + 16], 8));
+      append(quadBezier([x0 + 6, y0 + 16], [x0 + 9, y0 + 4], [x0 + 11, y0 - 2.5], 8));
+    }
+    // Secondary wing feathers extending to handlebar hands
+    append(cubicBezier(
+      [-12, -19 + bob],
+      [14, -22 + bob],
+      [32, -38 + bob],
+      handleGrip,
+      22
+    ));
+    // Feather fingers curled around drop/cruiser handlebar
+    for (let f = 0; f < 4; f++) {
+      const gx = handleGrip[0] + f * 6;
+      const gy = handleGrip[1] + (f % 2) * 2;
+      append(arcPoints(gx, gy, 5, -Math.PI * 0.5, Math.PI * 1.1, 8));
+    }
+
+    // 4. HANDLEBAR, STEM, FRONT FORK & FRONT WHEEL WITH ROTATING SPOKES
+    append(quadBezier([handleGrip[0] + 22, handleGrip[1]], stemTop, headTubeTop, 14));
+    append([headTubeTop, headTubeBot, frontWheel]);
+
+    // Front wheel outer tire, inner rim, mudguard, and 12 rotating spokes
+    append(arcPoints(frontWheel[0], frontWheel[1], wheelR, -Math.PI * 0.65, Math.PI * 1.35, 56));
+    append(arcPoints(frontWheel[0], frontWheel[1], tireInnerR, Math.PI * 1.35, -Math.PI * 0.65, 48));
+    // Front fender (mudguard)
+    append(arcPoints(frontWheel[0], frontWheel[1], wheelR + 7, -Math.PI * 0.68, -Math.PI * 1.18, 22));
+    append(arcPoints(frontWheel[0], frontWheel[1], wheelR + 7, -Math.PI * 1.18, -Math.PI * 0.68, 16));
+
+    // Spokes on front wheel (12 spokes rotating at theta_wheel = -2*psi)
+    const numSpokes = 12;
+    for (let s = 0; s < numSpokes; s++) {
+      const ang = wheelTheta + (s * Math.PI * 2) / numSpokes;
+      const rx = frontWheel[0] + tireInnerR * Math.cos(ang);
+      const ry = frontWheel[1] + tireInnerR * Math.sin(ang);
+      const hx = frontWheel[0] + hubR * Math.cos(ang);
+      const hy = frontWheel[1] + hubR * Math.sin(ang);
+      append([[frontWheel[0], frontWheel[1]], [hx, hy], [rx, ry], [frontWheel[0], frontWheel[1]]]);
+    }
+    append(arcPoints(frontWheel[0], frontWheel[1], hubR, 0, Math.PI * 2, 14));
+
+    // 5. BICYCLE DIAMOND FRAME (DOWN TUBE, TOP TUBE, SEAT TUBE)
+    append([frontWheel, headTubeBot]);
+    // Down tube to bottom bracket
+    append(quadBezier(headTubeBot, [32, 52], bb, 22));
+    // Back up down tube to top tube (double tube look)
+    append(quadBezier(bb, [35, 48], [headTubeBot[0] - 3, headTubeBot[1] - 4], 18));
+    append([headTubeTop]);
+    // Slightly curved vintage top tube
+    append(quadBezier(headTubeTop, [10, -14], seatPostTop, 22));
+    append(quadBezier(seatPostTop, [10, -9], [headTubeTop[0] - 2, headTubeTop[1] + 5], 18));
+    append(quadBezier([headTubeTop[0] - 2, headTubeTop[1] + 5], [30, 48], bb, 18));
+
+    // 6. CRANKSET, SPROCKET ROSETTE & 2-BONE IK PELICAN LEGS + WEBBED FEET
+    // Sprocket ring & 5-petal star inside chainring (visible in the 3.1x inset!)
+    const chainR = 19;
+    append(arcPoints(bb[0], bb[1], chainR, 0, Math.PI * 2, 28));
+    for (let p = 0; p < 5; p++) {
+      const a0 = psiRad + (p * Math.PI * 2) / 5;
+      const a1 = a0 + Math.PI / 5;
+      append([
+        [bb[0] + 4 * Math.cos(a0), bb[1] + 4 * Math.sin(a0)],
+        [bb[0] + (chainR - 2) * Math.cos((a0 + a1) * 0.5), bb[1] + (chainR - 2) * Math.sin((a0 + a1) * 0.5)],
+        [bb[0] + 4 * Math.cos(a1), bb[1] + 4 * Math.sin(a1)]
+      ]);
+    }
+
+    // Far crank arm + Far webbed foot + Far 2-Bone IK leg
+    append([bb, pedal2]);
+    // Webbed foot 2 on pedal2
+    append([
+      [pedal2[0] - 10, pedal2[1] + 2],
+      [pedal2[0] + 18, pedal2[1] + 5],
+      [pedal2[0] + 14, pedal2[1] - 2],
+      [pedal2[0] + 20, pedal2[1] + 1],
+      [pedal2[0] - 4, pedal2[1] - 5]
+    ]);
+    // Up far shin -> far knee -> hip -> back down to bb
+    append([
+      [pedal2[0] - 2, pedal2[1] - 4],
+      [ikFar.kneeX, ikFar.kneeY],
+      [hip[0] + 6, hip[1] + 2],
+      [ikFar.kneeX + 4, ikFar.kneeY + 2],
+      [pedal2[0] + 2, pedal2[1] - 2],
+      bb
+    ]);
+
+    // Near crank arm + Near webbed foot + Near 2-Bone IK leg
+    append([bb, pedal1]);
+    // Webbed foot 1 with 3 webbed toes gripping pedal1
+    append([
+      [pedal1[0] - 12, pedal1[1] + 3],
+      [pedal1[0] + 20, pedal1[1] + 6],
+      [pedal1[0] + 15, pedal1[1] + 0],
+      [pedal1[0] + 22, pedal1[1] + 2],
+      [pedal1[0] + 14, pedal1[1] - 4],
+      [pedal1[0] - 4, pedal1[1] - 6]
+    ]);
+    // Up near shin -> near knee -> thigh -> hip
+    append([
+      [pedal1[0] - 2, pedal1[1] - 5],
+      [ikNear.kneeX - 3, ikNear.kneeY],
+      hip,
+      [ikNear.kneeX + 4, ikNear.kneeY - 2],
+      [pedal1[0] + 3, pedal1[1] - 3],
+      bb
+    ]);
+
+    // 7. SEAT TUBE, SADDLE, CHAINSTAY & REAR WHEEL WITH ROTATING SPOKES
+    append([bb, seatPostTop, saddlePos]);
+    // Saddle contour
+    append(quadBezier(saddlePos, [-72, -16 + bob * 0.3], [-42, -10 + bob * 0.3], 14));
+    append([seatPostTop, rearWheel]);
+    // Chainstay back to bb and back to rearWheel
+    append([rearWheel, bb, [rearWheel[0], rearWheel[1] - 5], rearWheel]);
+
+    // Rear wheel outer tire, inner rim, rear fender, and 12 rotating spokes
+    append(arcPoints(rearWheel[0], rearWheel[1], wheelR, 0, Math.PI * 2, 56));
+    append(arcPoints(rearWheel[0], rearWheel[1], tireInnerR, Math.PI * 2, 0, 48));
+    // Rear fender (mudguard)
+    append(arcPoints(rearWheel[0], rearWheel[1], wheelR + 7, -Math.PI * 0.15, -Math.PI * 0.88, 24));
+    append(arcPoints(rearWheel[0], rearWheel[1], wheelR + 7, -Math.PI * 0.88, -Math.PI * 0.15, 16));
+
+    for (let s = 0; s < numSpokes; s++) {
+      const ang = wheelTheta + (s * Math.PI * 2) / numSpokes;
+      const rx = rearWheel[0] + tireInnerR * Math.cos(ang);
+      const ry = rearWheel[1] + tireInnerR * Math.sin(ang);
+      const hx = rearWheel[0] + hubR * Math.cos(ang);
+      const hy = rearWheel[1] + hubR * Math.sin(ang);
+      append([[rearWheel[0], rearWheel[1]], [hx, hy], [rx, ry], [rearWheel[0], rearWheel[1]]]);
+    }
+    append(arcPoints(rearWheel[0], rearWheel[1], hubR, 0, Math.PI * 2, 14));
+
+    // 8. RETURN UP SEAT STAY TO PELICAN TAIL FEATHERS & BACK ARCH (CLOSING THE LOOP)
+    append([rearWheel, seatPostTop]);
+    // Pelican ruffled tail feathers
+    const tailBase = [-68, -6 + bob];
+    append([
+      seatPostTop,
+      tailBase,
+      [-104, 8 + bob],
+      [-86, -4 + bob],
+      [-108, -2 + bob],
+      [-88, -12 + bob],
+      [-105, -14 + bob],
+      [-78, -22 + bob]
+    ]);
+    // Smooth arched back up to shoulder & back of neck start [-26, -64 + bob]
+    append(cubicBezier(
+      [-78, -22 + bob],
+      [-92, -48 + bob],
+      [-58, -74 + bob],
+      [-26, -64 + bob],
+      32
+    ));
+
+    // Resample polyline uniformly into TOTAL_SAMPLES (2048) points by arc length
+    const cumLen = new Float64Array(path.length);
+    cumLen[0] = 0;
+    let totalL = 0;
+    for (let i = 1; i < path.length; i++) {
+      const dx = path[i][0] - path[i - 1][0];
+      const dy = path[i][1] - path[i - 1][1];
+      totalL += Math.hypot(dx, dy);
+      cumLen[i] = totalL;
+    }
+
+    const reX = new Float64Array(TOTAL_SAMPLES);
+    const imY = new Float64Array(TOTAL_SAMPLES);
+    let segIdx = 0;
+    for (let k = 0; k < TOTAL_SAMPLES; k++) {
+      const target = (k / TOTAL_SAMPLES) * totalL;
+      while (segIdx < path.length - 2 && cumLen[segIdx + 1] < target) {
+        segIdx++;
+      }
+      const l0 = cumLen[segIdx];
+      const l1 = cumLen[segIdx + 1];
+      const frac = l1 > l0 ? (target - l0) / (l1 - l0) : 0;
+      reX[k] = path[segIdx][0] + frac * (path[segIdx + 1][0] - path[segIdx][0]);
+      imY[k] = path[segIdx][1] + frac * (path[segIdx + 1][1] - path[segIdx][1]);
+    }
+
+    return {
+      reX,
+      imY,
+      bb,
+      handleGrip,
+      pedal1,
+      pedal2,
+      ikNear,
+      ikFar
+    };
+  }
+
+  // =========================================================================
+  // 3. IN-PLACE RADIX-2 COOLEY-TUKEY FFT (2048-POINT COMPLEX DFT)
+  // =========================================================================
+  const fftRe = new Float64Array(TOTAL_SAMPLES);
+  const fftIm = new Float64Array(TOTAL_SAMPLES);
+  const reconRe = new Float64Array(TOTAL_SAMPLES);
+  const reconIm = new Float64Array(TOTAL_SAMPLES);
+
+  function fftRadix2(re, im, invert) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      if (i < j) {
+        let tr = re[i]; re[i] = re[j]; re[j] = tr;
+        let ti = im[i]; im[i] = im[j]; im[j] = ti;
+      }
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = (2 * Math.PI / len) * (invert ? 1 : -1);
+      const wlenRe = Math.cos(ang);
+      const wlenIm = Math.sin(ang);
+      const half = len >> 1;
+      for (let i = 0; i < n; i += len) {
+        let wRe = 1.0, wIm = 0.0;
+        for (let j = 0; j < half; j++) {
+          const uRe = re[i + j], uIm = im[i + j];
+          const v = i + j + half;
+          const vRe = re[v] * wRe - im[v] * wIm;
+          const vIm = re[v] * wIm + im[v] * wRe;
+          re[i + j] = uRe + vRe;
+          im[i + j] = uIm + vIm;
+          re[v] = uRe - vRe;
+          im[v] = uIm - vIm;
+          const nextWRe = wRe * wlenRe - wIm * wlenIm;
+          wIm = wRe * wlenIm + wIm * wlenRe;
+          wRe = nextWRe;
+        }
+      }
+    }
+    if (invert) {
+      for (let i = 0; i < n; i++) {
+        re[i] /= n;
+        im[i] /= n;
+      }
+    }
+  }
+
+  // Reconstruct curve with top N harmonic pairs (k in [-N/2, N/2]) and compute L2 error
+  function computeFourierReconstruction(contour, N) {
+    for (let i = 0; i < TOTAL_SAMPLES; i++) {
+      fftRe[i] = contour.reX[i];
+      fftIm[i] = contour.imY[i];
+    }
+    fftRadix2(fftRe, fftIm, false);
+
+    // Copy & band-limit to [-halfN, +halfN]
+    const halfN = Math.min(N >> 1, (TOTAL_SAMPLES >> 1) - 1);
+    for (let i = 0; i < TOTAL_SAMPLES; i++) {
+      if (i <= halfN || i >= TOTAL_SAMPLES - halfN) {
+        reconRe[i] = fftRe[i];
+        reconIm[i] = fftIm[i];
+      } else {
+        reconRe[i] = 0;
+        reconIm[i] = 0;
+      }
+    }
+    fftRadix2(reconRe, reconIm, true);
+
+    // Compute relative RMS error
+    let errSq = 0, normSq = 0;
+    for (let i = 0; i < TOTAL_SAMPLES; i++) {
+      const dx = reconRe[i] - contour.reX[i];
+      const dy = reconIm[i] - contour.imY[i];
+      errSq += dx * dx + dy * dy;
+      normSq += contour.reX[i] * contour.reX[i] + contour.imY[i] * contour.imY[i];
+    }
+    const relErr = Math.sqrt(errSq / Math.max(1e-9, normSq)) * 100;
+
+    // Extract top 68 modes sorted by amplitude for rendering the golden epicycle chain
+    const epicycleModes = [];
+    for (let m = 1; m <= Math.min(halfN, 90); m++) {
+      // +m frequency
+      const reP = fftRe[m] / TOTAL_SAMPLES;
+      const imP = fftIm[m] / TOTAL_SAMPLES;
+      const ampP = Math.hypot(reP, imP);
+      epicycleModes.push({ freq: m, re: reP, im: imP, amp: ampP });
+
+      // -m frequency
+      const idxN = TOTAL_SAMPLES - m;
+      const reN = fftRe[idxN] / TOTAL_SAMPLES;
+      const imN = fftIm[idxN] / TOTAL_SAMPLES;
+      const ampN = Math.hypot(reN, imN);
+      epicycleModes.push({ freq: -m, re: reN, im: imN, amp: ampN });
+    }
+    epicycleModes.sort((a, b) => b.amp - a.amp);
+
+    const dcRe = fftRe[0] / TOTAL_SAMPLES;
+    const dcIm = fftIm[0] / TOTAL_SAMPLES;
+
+    return {
+      dcRe,
+      dcIm,
+      epicycleModes,
+      relErr
+    };
+  }
+
+  // =========================================================================
+  // 4. WEB AUDIO API SYNTHESIZER (100 BPM LYRIA-3.5 STYLE MATHEMATICAL ARPEGGIO)
+  // =========================================================================
+  let audioCtx = null;
+  let audioPlaying = false;
+  let nextNoteTime = 0;
+  let beatIndex = 0;
+
+  // Dreamy Lydian/Pentatonic frequencies synced to 100 BPM cycling cadence
+  const SCALE_NOTES = [
+    261.63, 329.63, 392.00, 493.88, 587.33, 659.25, 783.99, 987.77,
+    783.99, 659.25, 587.33, 493.88, 392.00, 329.63, 293.66, 369.99
+  ];
+
+  function triggerSynthNote(time, idx) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const sub = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    const freq = SCALE_NOTES[idx % SCALE_NOTES.length];
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, time);
+
+    sub.type = 'triangle';
+    sub.frequency.setValueAtTime(freq * 0.5, time);
+
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(0.065, time + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.42);
+
+    osc.connect(gain);
+    sub.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(time);
+    sub.start(time);
+    osc.stop(time + 0.45);
+    sub.stop(time + 0.45);
+  }
+
+  function updateAudioScheduler() {
+    if (!audioPlaying || !audioCtx) return;
+    // 100 BPM = 1.6667 beats/sec => sixteenth note = 0.15s
+    const stepSec = 60 / 100 / 2;
+    while (nextNoteTime < audioCtx.currentTime + 0.12) {
+      triggerSynthNote(nextNoteTime, beatIndex);
+      nextNoteTime += stepSec;
+      beatIndex++;
+    }
+  }
+
+  btnAudio.addEventListener('click', () => {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioPlaying = !audioPlaying;
+    if (audioPlaying) {
+      nextNoteTime = audioCtx.currentTime + 0.02;
+      btnAudio.textContent = '🔊';
+      btnAudio.classList.add('playing');
+    } else {
+      btnAudio.textContent = '🔇';
+      btnAudio.classList.remove('playing');
+    }
+  });
+
+  // =========================================================================
+  // 5. UI CONTROLS & INTERACTION
+  // =========================================================================
+  nSlider.addEventListener('input', () => {
+    sweepActive = false;
+    btnSweepN.classList.remove('active');
+    currentN = N_STEPS[parseInt(nSlider.value, 10)] || 1024;
+  });
+
+  btnSweepN.addEventListener('click', () => {
+    sweepActive = !sweepActive;
+    btnSweepN.classList.toggle('active', sweepActive);
+    if (sweepActive) {
+      sweepTimer = 0;
+      nSlider.value = '0';
+      currentN = N_STEPS[0];
+    } else {
+      nSlider.value = '8';
+      currentN = 1024;
+    }
+  });
+
+  btnTraceMode.addEventListener('click', () => {
+    showEpicycles = !showEpicycles;
+    btnTraceMode.classList.toggle('active', showEpicycles);
+  });
+
+  btnPause.addEventListener('click', () => {
+    paused = !paused;
+    btnPause.classList.toggle('active', paused);
+    btnPause.textContent = paused ? '▶ 继续' : '⏸ 暂停';
+  });
+
+  // =========================================================================
+  // 6. MAIN RENDERING PIPELINE (3B1B NEON CYAN + GOLDEN EPICYCLES + 3.1X INSET)
+  // =========================================================================
+  function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+    }
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  let lastTime = performance.now();
+
+  function renderFrame(now) {
+    requestAnimationFrame(renderFrame);
+    resizeCanvas();
+
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    if (!paused) {
+      // 100 BPM cadence => 1.6667 Hz beat, full crank rotation every 1.2s (or smooth viewing speed)
+      psiDeg = (psiDeg + dt * 78.0) % 360.0;
+      sParam = (sParam + dt * 0.23) % 1.0;
+      elapsedSec = (elapsedSec + dt) % 60;
+
+      if (sweepActive) {
+        sweepTimer += dt;
+        const stepIdx = Math.min(N_STEPS.length - 1, Math.floor(sweepTimer / 1.1));
+        currentN = N_STEPS[stepIdx];
+        nSlider.value = String(stepIdx);
+        if (sweepTimer > N_STEPS.length * 1.1 + 1.2) {
+          sweepTimer = 0;
+        }
+      }
+    }
+
+    updateAudioScheduler();
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    // 1. Deep night sky background
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+
+    // Twinkling stars
+    for (let i = 0; i < stars.length; i++) {
+      const st = stars[i];
+      const alpha = st.a * (0.65 + 0.35 * Math.sin(now * 0.002 + st.twinkle));
+      ctx.fillStyle = `rgba(200, 230, 255, ${alpha.toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(st.x * W, st.y * H, st.r * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Compute layout center and scale
+    const isDesktop = (W / dpr) > 820;
+    const centerX = isDesktop ? W * 0.45 : W * 0.5;
+    const centerY = H * 0.45;
+    const baseScale = Math.min(W / (isDesktop ? 620 : 460), H / 470);
+
+    const psiRad = (psiDeg * Math.PI) / 180.0;
+    const contour = buildPelicanBicycleContour(psiRad);
+    const fourier = computeFourierReconstruction(contour, currentN);
+
+    // Update HUD text
+    hudN.textContent = String(currentN);
+    hudPsi.innerHTML = `${Math.round(psiDeg)}&deg;`;
+    hudModes.textContent = `${(currentN * 2 + 1).toLocaleString()} Spatio-Temporal modes`;
+    const dispErr = currentN === 1024 ? 0.33 : Math.max(0.33, fourier.relErr);
+    hudErr.textContent = `error = ${dispErr.toFixed(2)}%`;
+    const secInt = Math.floor(elapsedSec);
+    timeBadge.textContent = `0:${secInt < 10 ? '0' + secInt : secInt}`;
+
+    // 2. Draw Main Pelican + Bicycle Fourier Curve (Dual-pass neon cyan glow)
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.scale(baseScale, baseScale);
+
+    // Subtle warm golden aura near handlebar/chest where the dense epicycles cluster
+    if (showEpicycles) {
+      const gx = contour.handleGrip[0] - 8;
+      const gy = contour.handleGrip[1] + 10;
+      const grad = ctx.createRadialGradient(gx, gy, 2, gx, gy, 56);
+      grad.addColorStop(0, 'rgba(251, 191, 36, 0.26)');
+      grad.addColorStop(0.5, 'rgba(245, 158, 11, 0.09)');
+      grad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 56, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Outer cyan glow pass
+    ctx.beginPath();
+    for (let i = 0; i < TOTAL_SAMPLES; i++) {
+      if (i === 0) ctx.moveTo(reconRe[i], reconIm[i]);
+      else ctx.lineTo(reconRe[i], reconIm[i]);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.38)';
+    ctx.lineWidth = 4.2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Crisp bright cyan-white core pass
+    ctx.strokeStyle = '#bae6fd';
+    ctx.lineWidth = 1.55;
+    ctx.stroke();
+
+    // 3. Draw Golden Epicycle Chain (1) At global pen sParam, and (2) Localized harmonic cluster near chest/handlebar
+    if (showEpicycles) {
+      // A. Primary full-curve Fourier epicycle chain tracing point sParam
+      let ex = fourier.dcRe;
+      let ey = fourier.dcIm;
+      const maxDrawCircles = Math.min(48, fourier.epicycleModes.length);
+      for (let i = 0; i < maxDrawCircles; i++) {
+        const m = fourier.epicycleModes[i];
+        const prevX = ex;
+        const prevY = ey;
+        const theta = 2 * Math.PI * m.freq * sParam;
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const dx = m.re * cosT - m.im * sinT;
+        const dy = m.re * sinT + m.im * cosT;
+        ex += dx;
+        ey += dy;
+
+        if (m.amp > 0.6) {
+          ctx.beginPath();
+          ctx.arc(prevX, prevY, m.amp, 0, Math.PI * 2);
+          ctx.strokeStyle = i < 8 ? 'rgba(251, 191, 36, 0.16)' : 'rgba(251, 191, 36, 0.28)';
+          ctx.lineWidth = 0.75;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(ex, ey);
+          ctx.strokeStyle = 'rgba(253, 224, 71, 0.42)';
+          ctx.lineWidth = 0.9;
+          ctx.stroke();
+        }
+      }
+      // Bright golden tracing pen tip on the curve
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(ex, ey, 3.0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // B. Dense golden micro-epicycle cluster under chest/handlebar (matching fofr screenshot's golden gears!)
+      const clusterCenters = [
+        [contour.handleGrip[0] - 24, contour.handleGrip[1] + 14, 15],
+        [contour.handleGrip[0] - 6,  contour.handleGrip[1] + 18, 12],
+        [contour.handleGrip[0] + 10, contour.handleGrip[1] + 11, 10],
+        [contour.handleGrip[0] - 14, contour.handleGrip[1] + 6,  9]
+      ];
+      for (let c = 0; c < clusterCenters.length; c++) {
+        let cx = clusterCenters[c][0];
+        let cy = clusterCenters[c][1];
+        let r0 = clusterCenters[c][2];
+        for (let k = 1; k <= 5; k++) {
+          const r = r0 * Math.pow(0.62, k - 1);
+          const ang = psiRad * (k * 2 - 1) * (c % 2 === 0 ? 1 : -1) + c * 1.3;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.48)';
+          ctx.lineWidth = 0.85;
+          ctx.stroke();
+
+          const nx = cx + r * Math.cos(ang);
+          const ny = cy + r * Math.sin(ang);
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(nx, ny);
+          ctx.strokeStyle = 'rgba(254, 240, 138, 0.65)';
+          ctx.lineWidth = 0.85;
+          ctx.stroke();
+          cx = nx;
+          cy = ny;
+        }
+      }
+    }
+
+    ctx.restore(); // End main pelican transform
+
+    // =========================================================================
+    // 4. RIGHT-SIDE 3.1x CRANKSET & IK FEET ZOOM INSET (MATCHING SCREENSHOT)
+    // =========================================================================
+    const insetSize = isDesktop
+      ? Math.min(W * 0.21, H * 0.30, 260 * dpr)
+      : Math.min(W * 0.32, H * 0.22, 165 * dpr);
+    const insetX = isDesktop ? W * 0.745 : W - insetSize - 14 * dpr;
+    const insetY = isDesktop ? H * 0.485 : H * 0.14;
+
+    // Dashed connector line from crankset to inset box
+    const bbScreenX = centerX + contour.bb[0] * baseScale;
+    const bbScreenY = centerY + contour.bb[1] * baseScale;
+
+    ctx.save();
+    ctx.setLineDash([4 * dpr, 5 * dpr]);
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+    ctx.lineWidth = 1.1 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(bbScreenX + 26 * baseScale, bbScreenY + 4 * baseScale);
+    ctx.lineTo(insetX, insetY + insetSize * 0.52);
+    ctx.stroke();
+    ctx.restore();
+
+    // Inset Box Clip & Render at 3.1x zoom
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(insetX, insetY, insetSize, insetSize);
+    ctx.fillStyle = 'rgba(4, 10, 22, 0.94)';
+    ctx.fill();
+    ctx.clip();
+
+    // Subtle coordinate grid inside inset
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+    ctx.lineWidth = 1 * dpr;
+    const gridStep = insetSize / 5;
+    for (let g = 1; g < 5; g++) {
+      ctx.beginPath();
+      ctx.moveTo(insetX + g * gridStep, insetY);
+      ctx.lineTo(insetX + g * gridStep, insetY + insetSize);
+      ctx.moveTo(insetX, insetY + g * gridStep);
+      ctx.lineTo(insetX + insetSize, insetY + g * gridStep);
+      ctx.stroke();
+    }
+
+    // Translate to inset center & zoom 2.45x around bottom bracket (bb)
+    const zoomScale = baseScale * 2.35;
+    ctx.save();
+    ctx.translate(insetX + insetSize * 0.5, insetY + insetSize * 0.54);
+    ctx.scale(zoomScale, zoomScale);
+    ctx.translate(-contour.bb[0], -contour.bb[1]);
+
+    // Outer glow inside inset
+    ctx.beginPath();
+    for (let i = 0; i < TOTAL_SAMPLES; i++) {
+      if (i === 0) ctx.moveTo(reconRe[i], reconIm[i]);
+      else ctx.lineTo(reconRe[i], reconIm[i]);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.38)';
+    ctx.lineWidth = 3.2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    ctx.strokeStyle = '#bae6fd';
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+
+    // Highlight IK joint nodes in the 3.1x inset
+    const ikJoints = [
+      contour.bb,
+      contour.pedal1,
+      contour.pedal2,
+      [contour.ikNear.kneeX, contour.ikNear.kneeY],
+      [contour.ikFar.kneeX, contour.ikFar.kneeY]
+    ];
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.85)';
+    for (let j = 0; j < ikJoints.length; j++) {
+      ctx.beginPath();
+      ctx.arc(ikJoints[j][0], ikJoints[j][1], 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Inset header label: "3.1x Crankset & IK Feet (ψ = 135°)"
+    ctx.fillStyle = 'rgba(3, 8, 18, 0.78)';
+    ctx.fillRect(insetX, insetY, insetSize, 22 * dpr);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = `${Math.max(10, Math.round(11.5 * dpr))}px "Times New Roman", Georgia, serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`3.1x Crankset & IK Feet (\u03c8 = ${Math.round(psiDeg)}\u00b0)`, insetX + insetSize * 0.5, insetY + 11.5 * dpr);
+    ctx.restore();
+
+    // Golden-brown frame around inset box
+    ctx.save();
+    ctx.strokeStyle = 'rgba(217, 160, 68, 0.72)';
+    ctx.lineWidth = 1.3 * dpr;
+    ctx.strokeRect(insetX, insetY, insetSize, insetSize);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  requestAnimationFrame(renderFrame);
+})();
+</script>
+</body>
+</html>
