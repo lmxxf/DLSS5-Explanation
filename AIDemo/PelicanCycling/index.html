@@ -730,9 +730,11 @@ let wheelieTimer = 0;   // 翘头冲刺倒计时
 let wheelieAngle = 0;   // 车身仰角 (度)
 let bellAnim = 0;       // 车铃声波动画
 let beakOpenAngle = 0;  // 张嘴接鱼角度
+let catchImpact = 0;    // 接住鱼瞬间喉囊下沉弹性冲量
 
 const droppedFishes = [];
 const floatingNotes = [];
+const splashDrops = [];
 const fxLayer = document.getElementById('fx-layer');
 
 const slider = document.getElementById('speed-slider');
@@ -765,15 +767,32 @@ document.getElementById('btn-fish-jump').onclick = triggerFishJump;
 document.getElementById('pelican-pouch-group').onclick = triggerFishJump;
 document.getElementById('front-basket').onclick = triggerFishJump;
 
-// 动作 2：高空投喂 (从高空扔下海鱼，皮特张大嘴接进喉囊)
+// 动作 2：高空投喂 (精确弹道反解：100% 落入大嘴喉囊正中央!)
 function triggerHighFeed() {
   playSplashSound();
+  const startX = 810 + (Math.random() - 0.5) * 50;
+  const startY = -24;
+  // 目标落点：大嘴喉囊正中心 (638, 128)，若处于翘头状态自动补偿旋转坐标
+  const rad = (wheelieAngle * Math.PI) / 180;
+  const rawTX = 638 + (Math.random() - 0.5) * 24;
+  const rawTY = 128;
+  const targetX = 412 + (rawTX - 412) * Math.cos(rad) - (rawTY - 434) * Math.sin(rad);
+  const targetY = 434 + (rawTX - 412) * Math.sin(rad) + (rawTY - 434) * Math.cos(rad);
+
+  const flightFrames = 34;
+  const gravity = 0.24;
+  const vx = (targetX - startX) / flightFrames;
+  const vy = (targetY - startY - 0.5 * gravity * flightFrames * flightFrames) / flightFrames;
+
   droppedFishes.push({
-    x: 920 + (Math.random() - 0.5) * 60,
-    y: -30,
-    vx: -4.2,
-    vy: 1.5,
-    rot: -25
+    x: startX,
+    y: startY,
+    vx,
+    vy,
+    gravity,
+    targetY,
+    frames: 0,
+    maxFrames: flightFrames
   });
 }
 document.getElementById('btn-high-feed').onclick = triggerHighFeed;
@@ -909,8 +928,11 @@ function animate() {
   // 4. 鹈鹕身体颠簸、红领巾飘动、大嘴喉囊弹性晃动
   document.getElementById('pelican-body-group').setAttribute('transform', `translate(0, ${bodyBob.toFixed(1)})`);
 
-  // 喉囊随踩踏节奏上下Q弹变形
-  const pouchBounce = Math.sin(crankAngle * 2 - 0.6) * 10 + (jumpAnim > 0 ? Math.sin(jumpAnim * Math.PI * 2) * 14 : 0);
+  if (catchImpact > 0.2) catchImpact *= 0.86;
+  else catchImpact = 0;
+
+  // 喉囊随踩踏节奏 + 接鱼冲量上下Q弹变形
+  let pouchBounce = Math.sin(crankAngle * 2 - 0.6) * 10 + catchImpact + (jumpAnim > 0 ? Math.sin(jumpAnim * Math.PI * 2) * 14 : 0);
   const pouchBottomY = 240 + pouchBounce;
   const pouchPath = `M 532,118 C 532,${pouchBottomY} 698,${pouchBottomY + 4} 748,118 Z`;
   document.getElementById('pouch-main-shape').setAttribute('d', pouchPath);
@@ -960,54 +982,89 @@ function animate() {
     document.getElementById('bell-rings').setAttribute('opacity', bellAnim.toFixed(2));
   }
 
-  if (beakOpenAngle > 0) beakOpenAngle = Math.max(0, beakOpenAngle - 0.8);
+  if (beakOpenAngle < 0) beakOpenAngle = Math.min(0, beakOpenAngle + 1.2);
 
   let fxHTML = '';
 
-  // 处理高空投喂的鱼
+  // 处理高空投喂的鱼 (100% 精准制导落入大嘴喉囊!)
   for (let i = droppedFishes.length - 1; i >= 0; i--) {
     const f = droppedFishes[i];
     f.x += f.vx;
     f.y += f.vy;
-    f.vy += 0.22;
-    f.rot += 4;
+    f.vy += f.gravity;
+    f.frames++;
 
-    // 靠近大嘴时自动张开金黄色上喙！
-    if (f.y < 165 && f.x > 560 && f.x < 820) {
-      beakOpenAngle = -20;
+    // 鱼头顺着运动轨迹切线方向自然俯冲
+    const angleDeg = (Math.atan2(f.vy, f.vx) * 180) / Math.PI + 180;
+
+    // 飞鱼接近大嘴上方时，皮特自动大张金黄色上喙迎接！
+    if (f.frames > 8) {
+      beakOpenAngle = -24;
     }
 
     fxHTML += `
-      <g transform="translate(${f.x.toFixed(1)}, ${f.y.toFixed(1)}) rotate(${f.rot})">
+      <g transform="translate(${f.x.toFixed(1)}, ${f.y.toFixed(1)}) rotate(${angleDeg.toFixed(1)})">
         <ellipse cx="0" cy="0" rx="22" ry="10" fill="#10b981" stroke="#047857" stroke-width="2"/>
         <polygon points="20,0 34,-10 30,0 34,10" fill="#34d399"/>
-        <circle cx="-12" cy="-2" r="2.2" fill="#fff"/>
+        <circle cx="-12" cy="-2" r="2.5" fill="#fff"/>
+        <circle cx="-13" cy="-2" r="1.2" fill="#0f172a"/>
       </g>
     `;
 
-    // 落入大嘴喉囊判定
-    if (f.y >= 135 && f.x >= 530 && f.x <= 755) {
+    // 精准到达大嘴喉囊高度，一口吞入！
+    if (f.frames >= f.maxFrames || f.y >= f.targetY) {
+      const hitX = f.x, hitY = f.y;
       droppedFishes.splice(i, 1);
       fishJumpCount++;
       document.getElementById('stat-jumps').textContent = `${fishJumpCount} 次`;
-      pouchBounce = 22;
+      catchImpact = 28; // 喉囊沉甸甸往下弹一下
+      beakOpenAngle = 0; // 闭嘴咽下
       playSplashSound();
-    } else if (f.y > 540) {
-      droppedFishes.splice(i, 1);
+
+      // 生成水花飞溅粒子与 "+1 🐟" 浮动提示
+      for (let s = 0; s < 7; s++) {
+        const a = -Math.PI * (0.15 + 0.7 * (s / 6));
+        const spd = 3.2 + Math.random() * 2.5;
+        splashDrops.push({
+          x: hitX, y: hitY,
+          vx: Math.cos(a) * spd,
+          vy: Math.sin(a) * spd - 1.5,
+          life: 1.0
+        });
+      }
+      floatingNotes.push({
+        x: hitX - 18, y: hitY - 12,
+        vx: -0.4, vy: -2.0,
+        life: 1.0,
+        char: '🐟 +1 好球!'
+      });
     }
   }
 
-  document.getElementById('upper-beak').setAttribute('transform', `rotate(${beakOpenAngle.toFixed(1)} 526 112)`);
+  // 绘制接鱼溅起的水珠
+  for (let i = splashDrops.length - 1; i >= 0; i--) {
+    const d = splashDrops[i];
+    d.x += d.vx;
+    d.y += d.vy;
+    d.vy += 0.28;
+    d.life -= 0.04;
+    if (d.life <= 0) splashDrops.splice(i, 1);
+    else {
+      fxHTML += `<circle cx="${d.x.toFixed(1)}" cy="${d.y.toFixed(1)}" r="${(4.5 * d.life).toFixed(1)}" fill="#38bdf8" opacity="${d.life.toFixed(2)}"/>`;
+    }
+  }
 
-  // 飘起的音符
+  document.getElementById('upper-beak').setAttribute('transform', `rotate(${beakOpenAngle.toFixed(1)} 534 114)`);
+
+  // 飘起的音符与 "+1 好球"
   for (let i = floatingNotes.length - 1; i >= 0; i--) {
     const n = floatingNotes[i];
     n.x += n.vx;
     n.y += n.vy;
-    n.life -= 0.025;
+    n.life -= 0.024;
     if (n.life <= 0) floatingNotes.splice(i, 1);
     else {
-      fxHTML += `<text x="${n.x.toFixed(1)}" y="${n.y.toFixed(1)}" font-size="24" opacity="${n.life.toFixed(2)}">${n.char}</text>`;
+      fxHTML += `<text x="${n.x.toFixed(1)}" y="${n.y.toFixed(1)}" font-size="20" font-weight="900" fill="#0284c7" stroke="#ffffff" stroke-width="0.8" opacity="${n.life.toFixed(2)}">${n.char}</text>`;
     }
   }
 
