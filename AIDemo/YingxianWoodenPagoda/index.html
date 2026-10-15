@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>应县木塔 (1056 辽·佛宫寺释迦塔) 3D 营造法式与力学结构剖析</title>
+<style>
+  :root {
+    --bg0: #090d16;
+    --bg1: #131c2e;
+    --panel: rgba(14, 21, 35, 0.86);
+    --border: rgba(217, 160, 91, 0.32);
+    --gold: #f59e0b;
+    --gold-light: #fde68a;
+    --cinnabar: #dc2626;
+    --cyan: #38bdf8;
+    --emerald: #10b981;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  html, body {
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 35%, #1c2536 0%, #0b101b 70%, #05080f 100%);
+    color: var(--text);
+    font-family: 'PingFang SC', 'Noto Serif SC', 'Microsoft YaHei', system-ui, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  #stage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Header Bar */
+  .top-bar {
+    position: absolute;
+    top: 12px; left: 14px; right: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    z-index: 20;
+    pointer-events: none;
+    flex-wrap: wrap;
+  }
+  .top-bar > * { pointer-events: auto; }
+
+  .brand-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+  }
+  .brand-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .back-btn {
+    text-decoration: none;
+    color: var(--gold-light);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    transition: all 0.2s;
+  }
+  .back-btn:hover { background: rgba(245, 158, 11, 0.3); color: #fff; }
+  .title {
+    font-size: clamp(15px, 2.2vw, 20px);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    background: linear-gradient(90deg, #fff, #fde68a, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Right Info / Layer Inspector Card */
+  .inspector-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    width: 300px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+    font-size: 12px;
+  }
+  .insp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+  .insp-title {
+    font-weight: 800;
+    color: var(--gold-light);
+    font-size: 13.5px;
+  }
+  .insp-badge {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(220, 38, 38, 0.25);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    color: #fca5a5;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .stat-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 6px;
+    padding: 5px 8px;
+  }
+  .stat-label { font-size: 10.5px; color: var(--muted); }
+  .stat-val { font-size: 13px; font-weight: 800; color: #f8fafc; margin-top: 1px; }
+  .insp-desc {
+    color: #cbd5e1;
+    line-height: 1.5;
+    font-size: 11.5px;
+    margin-bottom: 8px;
+  }
+  .layer-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .layer-pill {
+    font-size: 10.5px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .layer-pill:hover, .layer-pill.active {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: var(--gold);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* Bottom Control Dock (Mobile & Desktop friendly) */
+  .bottom-dock {
+    position: absolute;
+    left: 14px; right: 14px; bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 20;
+    pointer-events: none;
+  }
+  .bottom-dock > * { pointer-events: auto; }
+
+  .mode-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 10px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.65);
+  }
+  .tab-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tab-btn:hover {
+    border-color: var(--gold);
+    color: #fff;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.85), rgba(217, 119, 6, 0.85));
+    border-color: var(--gold-light);
+    color: #fff;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+  }
+
+  .sliders-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 7px 14px;
+    backdrop-filter: blur(10px);
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .slider-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .slider-item input[type=range] {
+    width: 90px;
+    accent-color: var(--gold);
+    cursor: pointer;
+  }
+
+  @media (max-width: 760px) {
+    .inspector-card {
+      width: 100%;
+      padding: 8px 10px;
+    }
+    .stat-grid { display: none; }
+    .tab-btn { padding: 5px 9px; font-size: 11px; }
+    .sliders-row { padding: 6px 10px; gap: 8px; font-size: 11px; }
+    .slider-item input[type=range] { width: 72px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<div class="top-bar">
+  <div class="brand-card">
+    <div class="brand-top">
+      <a class="back-btn" href="../index.html">◀ 陈列馆</a>
+      <div class="title">🏯 应县木塔 3D 营造法式与筒中筒结构</div>
+    </div>
+    <div class="subtitle">辽清宁二年 (1056) · 通高 67.31m · 底层直径 30.27m · 明五暗四九层 · 54种斗栱全榫卯无钉</div>
+  </div>
+
+  <div class="inspector-card" id="inspectorCard">
+    <div class="insp-header">
+      <span class="insp-title" id="inspTitle">全塔总览 · 明五暗四筒中筒</span>
+      <span class="insp-badge" id="inspBadge">67.31m · 54种斗栱</span>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-label">柱网结构</div>
+        <div class="stat-val" id="statCols">外24柱 + 内8柱</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">核心抗侧力机制</div>
+        <div class="stat-val" id="statMech">暗层斜撑刚性环</div>
+      </div>
+    </div>
+    <div class="insp-desc" id="inspDesc">
+      梁思成赞誉“不见此塔，不知木构可能性到了什么程度”。塔身外看五层六檐（底层重檐副阶），实则每两明层间设一“暗层”（平坐层），内含大量斜撑（剪刀撑）形成刚性环，与明层柔性柱框组成“刚柔相济”的抗震阻尼体系。
+    </div>
+    <div class="layer-pills" id="layerPills">
+      <span class="layer-pill active" data-layer="all">全塔</span>
+      <span class="layer-pill" data-layer="0">台基副阶</span>
+      <span class="layer-pill" data-layer="1">明一 (释迦佛)</span>
+      <span class="layer-pill" data-layer="2">暗一 (斜撑层)</span>
+      <span class="layer-pill" data-layer="3">明二</span>
+      <span class="layer-pill" data-layer="5">明三 (四方佛)</span>
+      <span class="layer-pill" data-layer="7">明四</span>
+      <span class="layer-pill" data-layer="9">明五 (毗卢佛)</span>
+      <span class="layer-pill" data-layer="10">塔刹</span>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-dock">
+  <div class="mode-tabs">
+    <button class="tab-btn active" data-mode="full">🏛️ 整塔复原外观</button>
+    <button class="tab-btn" data-mode="section">🪓 梁思成纵剖面 (明五暗四)</button>
+    <button class="tab-btn" data-mode="xray">🔧 大木作骨架与54斗栱透视</button>
+    <button class="tab-btn" data-mode="explode">💥 九层爆炸拆解</button>
+    <button class="tab-btn" id="btnQuake">🌊 元大德七级大地震模拟</button>
+  </div>
+
+  <div class="sliders-row">
+    <div class="slider-item">
+      <span>💥 层间爆炸拆解</span>
+      <input id="explodeSlider" type="range" min="0" max="100" value="0">
+    </div>
+    <div class="slider-item">
+      <span>🪓 剖切角度</span>
+      <input id="cutSlider" type="range" min="0" max="100" value="0">
+    </div>
+    <div class="slider-item">
+      <span>👁️ 瓦檐透明度</span>
+      <input id="roofAlphaSlider" type="range" min="10" max="100" value="100">
+    </div>
+    <span style="color:#fde68a;font-weight:700;">💡 单指/鼠标拖拽旋转 · 双指/滚轮缩放</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+
+  const explodeSlider = document.getElementById('explodeSlider');
+  const cutSlider = document.getElementById('cutSlider');
+  const roofAlphaSlider = document.getElementById('roofAlphaSlider');
+  const btnQuake = document.getElementById('btnQuake');
+  const inspTitle = document.getElementById('inspTitle');
+  const inspBadge = document.getElementById('inspBadge');
+  const statCols = document.getElementById('statCols');
+  const statMech = document.getElementById('statMech');
+  const inspDesc = document.getElementById('inspDesc');
+
+  // Camera & Interaction state
+  let rotY = -0.48;
+  let rotX = 0.22;
+  let zoom = 1.0;
+  let panY = 0;
+  let autoRotate = true;
+
+  let viewMode = 'full';   // 'full' | 'section' | 'xray' | 'explode'
+  let explodeAmount = 0.0; // 0..1
+  let cutFraction = 0.0;   // 0..1 (0 = no cut, 0.5 = half cutaway)
+  let roofAlpha = 1.0;
+  let quakeActive = false;
+  let quakeTime = 0;
+  let selectedLayer = 'all';
+
+  // Layer Metadata for Inspector
+  const LAYER_INFO = {
+    'all': {
+      title: '全塔总览 · 明五暗四筒中筒',
+      badge: '67.31m · 54种斗栱',
+      cols: '外24柱 + 内8柱',
+      mech: '暗层斜撑刚性环',
+      desc: '辽清宁二年（1056）建成，世界现存最高最古纯木构楼阁式佛塔。外观五层六檐，内含四个暗层，构成“九层筒中筒”结构，历经元大德七级大地震与民国200余发炮弹轰击而不倒。'
+    },
+    '0': {
+      title: '底层重檐副阶与青石双层阶基',
+      badge: '高 4.4m · 直径 30.27m',
+      cols: '副阶24柱 + 外槽24 + 内槽8',
+      mech: '双槽夹泥墙 + 副阶周匝',
+      desc: '下层四方、上层八角须弥座青石台基。第一层外设“副阶周匝”（重檐廊），将底层荷载广泛分散至台基，内外槽柱脚均覆盆莲花柱础。'
+    },
+    '1': {
+      title: '明一层 · 释迦牟尼大佛殿',
+      badge: '双跳七铺作双杪双下昂',
+      cols: '内槽八角形藻井大空间',
+      mech: '柱头叉手 + 阑额普拍枋',
+      desc: '底层内供奉高 11 米辽代释迦牟尼金身彩塑坐像，顶部设精美八角藻井，四面辟门，檐下悬“释迦塔”古匾。外槽柱高约 9 米，微向内倾（侧脚）与柱高递升（生起）。'
+    },
+    '2': {
+      title: '暗一层 · 第一道结构刚性环',
+      badge: '平坐斗栱 · 剪刀撑群',
+      cols: '内外槽24+8柱拉结梁架',
+      mech: '斜撑(叉手/托脚)抗剪桁架',
+      desc: '应县木塔千年不倒的核心秘密！暗层不对外开窗，在外槽与内槽之间密集布置径向与环向斜撑（三角形桁架），把明层的柔性柱框锁死为高刚度空间筒体。'
+    },
+    '3': {
+      title: '明二层 · 八角平坐与当前倾斜最重层',
+      badge: '重栱计心造 · 四面格子门',
+      cols: '柱脚叉手辅以平坐勾栏',
+      mech: '斗栱摩擦耗能阻尼',
+      desc: '由于民国时期曾拆掉二层夹泥墙改换格子门，导致二层抗侧刚度减弱，成为目前古塔倾斜监测的核心保护层。内坛供奉一佛二菩萨二胁侍。'
+    },
+    '5': {
+      title: '明三层 · 四方佛坛城与《天下奇观》',
+      badge: '七铺作单杪双下昂',
+      cols: '八角内槽承托十字藻井',
+      mech: '上下柱永定柱错位插接',
+      desc: '南檐下高悬明武宗朱厚照御笔《天下奇观》巨匾。殿内塑有罕见的辽代“四方佛”面向四方，每层外檐柱均向内收分约半径，形成刚健优美的塔身收分曲线。'
+    },
+    '7': {
+      title: '明四层 · 炽盛光佛与星宿坛',
+      badge: '六铺作单杪单下昂',
+      cols: '内槽8柱直通暗四层',
+      mech: '径向乳栿与草栿双层梁',
+      desc: '柱径与面阔随高度逐层递减，斗栱铺作亦由底层的七铺作递减为六铺作，减轻上部自重，降低全塔重心位置。'
+    },
+    '9': {
+      title: '明五层 · 毗卢遮那佛与八大菩萨',
+      badge: '五铺作双杪偷心造 · 八角攒尖',
+      cols: '内槽柱挑承八角攒尖金顶',
+      mech: '八根大槫交汇雷公柱',
+      desc: '顶层内供奉法身毗卢遮那佛，环绕八大菩萨，构图严整。顶部八角攒尖屋架中央悬垂“雷公柱”，下端不落地，由八根角梁合抱，承托顶部 10 米高的铁刹。'
+    },
+    '10': {
+      title: '辽代铁制塔刹与八根拽山铁链',
+      badge: '刹高 9.91m · 避雷与压顶',
+      cols: '中心铁刹杆穿雷公柱',
+      mech: 'TMD 调谐质量摆 + 铁索拉锚',
+      desc: '由砖砌基座、仰莲、覆钵、相轮、流云、火焰、仰月、宝珠组成，八条粗铁链自刹顶拉向八个翼角，既兼具天然避雷针作用，又在强风地震时充当顶部调谐配重。'
+    }
+  };
+
+  // =========================================================================
+  // PROCEDURAL 3D TIMBER ARCHITECTURE ENGINE FOR YINGXIAN WOODEN PAGODA
+  // True 9-layer structure (5 visible Ming stories + 4 hidden An stories)
+  // + Stone Base + Double-Eave Perimeter Veranda (Fujie) + Spire (Tasha)
+  // =========================================================================
+  const OCT_ANGLES = [];
+  for (let i = 0; i < 8; i++) {
+    // Rotate by 22.5 deg so flat face faces front (Z+)
+    OCT_ANGLES.push(((i + 0.5) * Math.PI) / 4);
+  }
+
+  // Pagoda vertical architectural schedule (centered around Y = 0)
+  // Total height ~ 67.31m mapped to ~ 336 world units (1m = 5 units)
+  const STORIES = [
+    { id: 0, type: 'base',  name: '双层青石台基', y0: -145, h: 18, rOut: 82, rIn: 48 },
+    { id: 1, type: 'ming1', name: '明一层 (重檐副阶)', y0: -127, h: 36, rOut: 62, rIn: 28, rVeranda: 76, eaveR: 88, statueH: 22, plaque: '释迦塔' },
+    { id: 2, type: 'an',    name: '暗一层 (刚性斜撑层)', y0: -91,  h: 14, rOut: 58, rIn: 26, eaveR: 80, balR: 64 },
+    { id: 3, type: 'ming',  name: '明二层', y0: -77,  h: 28, rOut: 55, rIn: 25, eaveR: 78, statueH: 15 },
+    { id: 4, type: 'an',    name: '暗二层 (刚性斜撑层)', y0: -49,  h: 13, rOut: 52, rIn: 24, eaveR: 74, balR: 58 },
+    { id: 5, type: 'ming',  name: '明三层 (天下奇观)', y0: -36,  h: 26, rOut: 49, rIn: 22.5, eaveR: 71, statueH: 14, plaque: '天下奇观' },
+    { id: 6, type: 'an',    name: '暗三层 (刚性斜撑层)', y0: -10,  h: 12, rOut: 46, rIn: 21, eaveR: 67, balR: 52 },
+    { id: 7, type: 'ming',  name: '明四层', y0: 2,    h: 24, rOut: 43, rIn: 19.5, eaveR: 63, statueH: 13 },
+    { id: 8, type: 'an',    name: '暗四层 (刚性斜撑层)', y0: 26,   h: 11, rOut: 40, rIn: 18, eaveR: 59, balR: 46 },
+    { id: 9, type: 'ming5', name: '明五层 (八角攒尖顶)', y0: 37,   h: 24, rOut: 37, rIn: 16.5, eaveR: 56, roofTopY: 88, statueH: 13, plaque: '妙法莲华' },
+    { id: 10, type: 'spire', name: '辽代铁刹 (相轮宝珠)', y0: 88,   h: 52, rOut: 14, rIn: 3 }
+  ];
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+    }
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // 3D Projection with seismic sway & layer explosion
+  function getLayerOffset(storyId, nowSec) {
+    // Explosion vertical offset
+    let dy = 0;
+    if (explodeAmount > 0.001) {
+      dy = (storyId - 4.5) * 18.0 * explodeAmount;
+    }
+    // Seismic horizontal sway (1st + 2nd mode structural response, stiffened at An layers)
+    let dx = 0, dz = 0;
+    if (quakeActive) {
+      const hNorm = Math.max(0, (storyId) / 10);
+      const wave1 = Math.sin(nowSec * 9.5 - hNorm * 2.2);
+      const wave2 = Math.sin(nowSec * 21.0 - hNorm * 4.5) * 0.3;
+      const amp = Math.pow(hNorm, 1.45) * 14.0;
+      dx = (wave1 + wave2) * amp;
+      dz = Math.cos(nowSec * 7.2 - hNorm * 1.8) * amp * 0.35;
+    }
+    return { dx, dy, dz };
+  }
+
+  function project3D(x, y, z, cx, cy, scale, cosY, sinY, cosX, sinX) {
+    // Rotate around Y
+    const rx = x * cosY + z * sinY;
+    const rz = -x * sinY + z * cosY;
+    // Rotate around X
+    const ry = y * cosX - rz * sinX;
+    const rz2 = y * sinX + rz * cosX;
+
+    const fov = 920;
+    const dist = fov + rz2;
+    const p = fov / Math.max(120, dist);
+    return {
+      sx: cx + rx * scale * p,
+      sy: cy - ry * scale * p,
+      depth: rz2,
+      scaleP: scale * p,
+      wx: x,
+      wy: y,
+      wz: z
+    };
+  }
+
+  // Section cutaway test: when cutFraction > 0, clip elements in the front-right wedge
+  function isClippedBySection(x, z, isInteriorStatue) {
+    if (cutFraction <= 0.01 || isInteriorStatue) return false;
+    // Cut plane sweeps from front-right quadrant so interior Buddha statues & inner columns are exposed!
+    const angle = Math.atan2(z, x); // [-PI, PI]
+    // Front is Z > 0 (angle in [0, PI]). We open a wedge centered at angle = PI * 0.42
+    const wedgeHalf = cutFraction * Math.PI * 0.62;
+    let diff = angle - Math.PI * 0.42;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    return Math.abs(diff) < wedgeHalf && Math.hypot(x, z) > 10;
+  }
+
+  // Generate 3D render primitives (sorted back-to-front by Painter's algorithm)
+  function buildPagodaPrimitives(nowSec) {
+    const prims = [];
+    const isXray = viewMode === 'xray';
+    const effectiveRoofAlpha = isXray ? 0.14 : roofAlpha;
+
+    const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+    const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const isDesktop = (W / dpr) > 780;
+    const cx = isDesktop ? W * 0.44 : W * 0.5;
+    const cy = H * 0.52 + panY * dpr;
+    const baseScale = Math.min(W / 440, H / 410) * zoom;
+
+    const proj = (x, y, z, off) => project3D(
+      x + off.dx,
+      y + off.dy,
+      z + off.dz,
+      cx, cy, baseScale, cosY, sinY, cosX, sinX
+    );
+
+    const addLine = (p0, p1, color, width, alpha = 1.0, glow = false) => {
+      prims.push({
+        type: 'line',
+        p0, p1,
+        depth: (p0.depth + p1.depth) * 0.5,
+        color, width: width * dpr, alpha, glow
+      });
+    };
+
+    const addPoly = (pts, fill, stroke, lineW = 1, alpha = 1.0) => {
+      let dSum = 0;
+      for (let i = 0; i < pts.length; i++) dSum += pts[i].depth;
+      prims.push({
+        type: 'poly',
+        pts,
+        depth: dSum / pts.length,
+        fill, stroke, lineW: lineW * dpr, alpha
+      });
+    };
+
+    const addLabel = (pt, text, bg, fg, isPlaque = false) => {
+      prims.push({
+        type: 'label',
+        pt,
+        depth: pt.depth - 8,
+        text, bg, fg, isPlaque
+      });
+    };
+
+    // Iterate through all 11 structural levels
+    for (let sIdx = 0; sIdx < STORIES.length; sIdx++) {
+      const st = STORIES[sIdx];
+      const isFocused = selectedLayer === 'all' || String(st.id) === selectedLayer;
+      const layerDim = isFocused ? 1.0 : 0.22;
+      const off = getLayerOffset(st.id, nowSec);
+
+      // ---------------------------------------------------------------------
+      // LEVEL 0: STONE PLATFORM (SUBAUSTRA / 须弥座阶基)
+      // ---------------------------------------------------------------------
+      if (st.type === 'base') {
+        for (let i = 0; i < 8; i++) {
+          const a0 = OCT_ANGLES[i];
+          const a1 = OCT_ANGLES[(i + 1) % 8];
+          const x0 = st.rOut * Math.cos(a0), z0 = st.rOut * Math.sin(a0);
+          const x1 = st.rOut * Math.cos(a1), z1 = st.rOut * Math.sin(a1);
+          if (isClippedBySection((x0 + x1) * 0.5, (z0 + z1) * 0.5, false)) continue;
+
+          const p00 = proj(x0, st.y0, z0, off);
+          const p10 = proj(x1, st.y0, z1, off);
+          const p11 = proj(x1, st.y0 + st.h, z1, off);
+          const p01 = proj(x0, st.y0 + st.h, z0, off);
+          addPoly([p00, p10, p11, p01], 'rgba(71, 85, 105, 0.78)', 'rgba(148, 163, 184, 0.6)', 1.2, layerDim);
+        }
+        continue;
+      }
+
+      // ---------------------------------------------------------------------
+      // LEVEL 10: LIAO IRON SPIRE (铁制塔刹 + 八根拽山铁链)
+      // ---------------------------------------------------------------------
+      if (st.type === 'spire') {
+        const yBase = st.y0;
+        const yTip = st.y0 + st.h;
+        const pBase = proj(0, yBase - 12, 0, off); // Reigongzhu (雷公柱) extending down into 5th roof
+        const pTip = proj(0, yTip, 0, off);
+        addLine(pBase, pTip, '#fbbf24', 3.0, layerDim, true);
+
+        // Lotus base, inverted bowl (覆钵), 7 chakra rings (相轮), flame & pearl (宝珠)
+        const rings = [
+          { dy: 4, r: 10, c: '#d97706' },
+          { dy: 9, r: 8.5, c: '#f59e0b' },
+          { dy: 15, r: 6.8, c: '#fbbf24' },
+          { dy: 19, r: 6.2, c: '#fbbf24' },
+          { dy: 23, r: 5.6, c: '#fbbf24' },
+          { dy: 27, r: 5.0, c: '#fbbf24' },
+          { dy: 31, r: 4.4, c: '#fbbf24' },
+          { dy: 35, r: 3.8, c: '#fbbf24' },
+          { dy: 44, r: 3.2, c: '#fef08a' }
+        ];
+        for (let rIdx = 0; rIdx < rings.length; rIdx++) {
+          const rg = rings[rIdx];
+          const ringPts = [];
+          for (let i = 0; i < 8; i++) {
+            const a = OCT_ANGLES[i];
+            ringPts.push(proj(rg.r * Math.cos(a), yBase + rg.dy, rg.r * Math.sin(a), off));
+          }
+          addPoly(ringPts, 'rgba(245, 158, 11, 0.35)', rg.c, 1.3, layerDim);
+        }
+
+        // 8 Iron Guy Chains (八根拽山铁链) anchored to 5th roof corners
+        const ming5 = STORIES[9];
+        const off5 = getLayerOffset(9, nowSec);
+        const chainTop = proj(0, yBase + 38, 0, off);
+        for (let i = 0; i < 8; i++) {
+          const a = OCT_ANGLES[i];
+          const ex = ming5.eaveR * Math.cos(a);
+          const ez = ming5.eaveR * Math.sin(a);
+          if (isClippedBySection(ex * 0.5, ez * 0.5, false)) continue;
+          const pCorner = proj(ex, ming5.y0 + ming5.h + 4, ez, off5);
+          addLine(chainTop, pCorner, 'rgba(253, 224, 71, 0.55)', 1.0, layerDim);
+        }
+        continue;
+      }
+
+      // ---------------------------------------------------------------------
+      // INNER & OUTER OCTAGONAL COLUMN RINGS (内外槽 24柱 + 8柱 筒中筒结构)
+      // ---------------------------------------------------------------------
+      const yBot = st.y0;
+      const yTop = st.y0 + st.h;
+      const isAn = st.type === 'an';
+
+      // Stress color during earthquake simulation (An layers take high shear stress -> amber/emerald)
+      const colColor = quakeActive
+        ? (isAn ? '#fbbf24' : '#f87171')
+        : (isAn ? '#d97706' : '#dc2626');
+
+      for (let i = 0; i < 8; i++) {
+        const a0 = OCT_ANGLES[i];
+        const a1 = OCT_ANGLES[(i + 1) % 8];
+
+        const ox0 = st.rOut * Math.cos(a0), oz0 = st.rOut * Math.sin(a0);
+        const ox1 = st.rOut * Math.cos(a1), oz1 = st.rOut * Math.sin(a1);
+        const ix0 = st.rIn * Math.cos(a0),  iz0 = st.rIn * Math.sin(a0);
+        const ix1 = st.rIn * Math.cos(a1),  iz1 = st.rIn * Math.sin(a1);
+
+        const clip0 = isClippedBySection(ox0, oz0, false);
+        const clipMid = isClippedBySection((ox0 + ox1) * 0.5, (oz0 + oz1) * 0.5, false);
+        const clipIn0 = isClippedBySection(ix0, iz0, false);
+
+        // 1. Inner Core Columns (内槽八根大柱) & Inner Ring Beams (内槽阑额/普拍枋)
+        if (!clipIn0) {
+          const piBot = proj(ix0, yBot, iz0, off);
+          const piTop = proj(ix0, yTop, iz0, off);
+          addLine(piBot, piTop, '#ef4444', 2.4, layerDim);
+
+          const piNextTop = proj(ix1, yTop, iz1, off);
+          const piNextBot = proj(ix1, yBot, iz1, off);
+          addLine(piTop, piNextTop, '#f59e0b', 1.5, layerDim);
+          addLine(piBot, piNextBot, 'rgba(245, 158, 11, 0.5)', 1.1, layerDim);
+
+          // Inner diagonal bracing in hidden An layers or X-ray mode
+          if (isAn || isXray) {
+            addLine(piBot, piNextTop, '#38bdf8', 1.2, layerDim * 0.85);
+            addLine(piTop, piNextBot, '#38bdf8', 1.2, layerDim * 0.85);
+          }
+        }
+
+        // 2. Outer Perimeter Columns (外槽 24 柱: 8 角柱 + 每面 2 根平柱)
+        if (!clip0) {
+          const poBot = proj(ox0, yBot, oz0, off);
+          const poTop = proj(ox0, yTop, oz0, off);
+          addLine(poBot, poTop, colColor, 2.3, layerDim);
+
+          // Radial tie beam (乳栿 / 穿插枋) connecting Outer Column to Inner Core Column
+          const piTop = proj(ix0, yTop, iz0, off);
+          const piBot = proj(ix0, yBot, iz0, off);
+          addLine(poTop, piTop, '#fbbf24', 1.5, layerDim);
+
+          // Radial diagonal strut (托脚 / 斜撑) inside hidden An layers — THE KEY SEISMIC TRUSS!
+          if (isAn) {
+            addLine(poBot, piTop, '#00e5ff', 1.8, layerDim, true);
+            addLine(poTop, piBot, '#00e5ff', 1.5, layerDim);
+          }
+
+          // DouGong Bracket Cluster (斗栱铺作挑出) at top of outer column
+          const dgScale = isAn ? 5.5 : 8.5;
+          const dgx = (st.rOut + dgScale) * Math.cos(a0);
+          const dgz = (st.rOut + dgScale) * Math.sin(a0);
+          const pDg1 = proj(dgx, yTop + 1.5, dgz, off);
+          const pDg2 = proj((st.rOut + dgScale * 0.55) * Math.cos(a0), yTop - 2.2, (st.rOut + dgScale * 0.55) * Math.sin(a0), off);
+          addLine(poTop, pDg2, '#fde047', 1.8, layerDim);
+          addLine(pDg2, pDg1, '#fde047', 2.1, layerDim);
+        }
+
+        if (!clipMid) {
+          // 2 intermediate columns per octagonal face (making 8 * 3 = 24 outer columns!)
+          for (let sub = 1; sub <= 2; sub++) {
+            const frac = sub / 3;
+            const mx = ox0 + (ox1 - ox0) * frac;
+            const mz = oz0 + (oz1 - oz0) * frac;
+            const pmBot = proj(mx, yBot, mz, off);
+            const pmTop = proj(mx, yTop, mz, off);
+            addLine(pmBot, pmTop, colColor, 1.4, layerDim * 0.88);
+
+            // Intermediate DouGong (补间铺作)
+            const mdx = mx * (1 + 6.5 / st.rOut);
+            const mdz = mz * (1 + 6.5 / st.rOut);
+            addLine(pmTop, proj(mdx, yTop + 1.2, mdz, off), '#facc15', 1.4, layerDim);
+          }
+
+          // Outer perimeter ring beams (阑额 & 普拍枋)
+          const po0Top = proj(ox0, yTop, oz0, off);
+          const po1Top = proj(ox1, yTop, oz1, off);
+          const po0Bot = proj(ox0, yBot, oz0, off);
+          const po1Bot = proj(ox1, yBot, oz1, off);
+          addLine(po0Top, po1Top, '#f59e0b', 1.8, layerDim);
+          addLine(po0Bot, po1Bot, 'rgba(217, 119, 6, 0.7)', 1.2, layerDim);
+
+          // Circumferential X-bracing (剪刀撑 / 柱间叉手)
+          if (isAn) {
+            // Dense cyan-gold truss X-bracing in hidden structural rings
+            addLine(po0Bot, po1Top, '#38bdf8', 1.75, layerDim, true);
+            addLine(po0Top, po1Bot, '#38bdf8', 1.75, layerDim, true);
+          } else {
+            // Ming story corner diagonal struts (柱头叉手) & wall/lattice doors
+            const midTop = proj((ox0 + ox1) * 0.5, yTop, (oz0 + oz1) * 0.5, off);
+            addLine(po0Bot, midTop, 'rgba(251, 191, 36, 0.55)', 1.1, layerDim);
+            addLine(po1Bot, midTop, 'rgba(251, 191, 36, 0.55)', 1.1, layerDim);
+
+            if (!isXray) {
+              addPoly([po0Bot, po1Bot, po1Top, po0Top], 'rgba(153, 27, 27, 0.34)', 'rgba(248, 113, 113, 0.35)', 0.8, layerDim);
+            }
+          }
+
+          // Pingzuo Balcony Railing (平坐勾栏) on An layers
+          if (isAn && st.balR) {
+            const bx0 = st.balR * Math.cos(a0), bz0 = st.balR * Math.sin(a0);
+            const bx1 = st.balR * Math.cos(a1), bz1 = st.balR * Math.sin(a1);
+            const pb0 = proj(bx0, yTop + 1, bz0, off);
+            const pb1 = proj(bx1, yTop + 1, bz1, off);
+            const pb0u = proj(bx0, yTop + 5.5, bz0, off);
+            const pb1u = proj(bx1, yTop + 5.5, bz1, off);
+            addPoly([pb0, pb1, pb1u, pb0u], 'rgba(180, 83, 9, 0.38)', '#fbbf24', 1.1, layerDim);
+          }
+        }
+
+        // 3. First-floor Perimeter Veranda (底层重檐副阶 24柱 + 下层飞檐)
+        if (st.type === 'ming1' && st.rVeranda && !clipMid) {
+          const vx0 = st.rVeranda * Math.cos(a0), vz0 = st.rVeranda * Math.sin(a0);
+          const vx1 = st.rVeranda * Math.cos(a1), vz1 = st.rVeranda * Math.sin(a1);
+          const vyTop = yBot + st.h * 0.62;
+          const pvBot0 = proj(vx0, yBot, vz0, off);
+          const pvTop0 = proj(vx0, vyTop, vz0, off);
+          const pvTop1 = proj(vx1, vyTop, vz1, off);
+          addLine(pvBot0, pvTop0, '#dc2626', 1.8, layerDim);
+          addLine(pvTop0, pvTop1, '#f59e0b', 1.3, layerDim);
+
+          // Lower veranda eave (副阶屋檐)
+          const er0 = st.eaveR * Math.cos(a0), ez0 = st.eaveR * Math.sin(a0);
+          const er1 = st.eaveR * Math.cos(a1), ez1 = st.eaveR * Math.sin(a1);
+          const pe0 = proj(er0, vyTop - 3, ez0, off);
+          const pe1 = proj(er1, vyTop - 3, ez1, off);
+          const pr0 = proj(ox0, vyTop + 5, oz0, off);
+          const pr1 = proj(ox1, vyTop + 5, oz1, off);
+          addPoly(
+            [pr0, pr1, pe1, pe0],
+            `rgba(30, 41, 59, ${(0.82 * effectiveRoofAlpha).toFixed(2)})`,
+            '#94a3b8',
+            1.1,
+            layerDim
+          );
+        }
+
+        // 4. Curved Octagonal Overhanging Eaves (飞檐翘角与筒瓦屋面)
+        const hasRoof = (st.type === 'an' || st.type === 'ming5') && st.eaveR;
+        if (hasRoof && !clipMid) {
+          const roofBaseY = st.type === 'ming5' ? yTop : yBot + 2;
+          const eaveDropY = roofBaseY - 4.5;
+          const ridgeY = st.type === 'ming5' ? st.roofTopY : roofBaseY + 9.5;
+
+          const ex0 = st.eaveR * Math.cos(a0), ez0 = st.eaveR * Math.sin(a0);
+          const ex1 = st.eaveR * Math.cos(a1), ez1 = st.eaveR * Math.sin(a1);
+
+          // Upturned corner horn (翼角起翘) & Hanging Wind Bell (风铎)
+          const horn0 = proj(ex0 * 1.04, eaveDropY + 2.8, ez0 * 1.04, off);
+          const horn1 = proj(ex1 * 1.04, eaveDropY + 2.8, ez1 * 1.04, off);
+          const bell0 = proj(ex0 * 1.04, eaveDropY - 1.5, ez0 * 1.04, off);
+
+          const topX0 = st.type === 'ming5' ? 0 : ox0 * 0.92;
+          const topZ0 = st.type === 'ming5' ? 0 : oz0 * 0.92;
+          const topX1 = st.type === 'ming5' ? 0 : ox1 * 0.92;
+          const topZ1 = st.type === 'ming5' ? 0 : oz1 * 0.92;
+
+          const rt0 = proj(topX0, ridgeY, topZ0, off);
+          const rt1 = proj(topX1, ridgeY, topZ1, off);
+
+          const roofFill = st.type === 'ming5'
+            ? `rgba(23, 37, 60, ${(0.9 * effectiveRoofAlpha).toFixed(2)})`
+            : `rgba(30, 41, 59, ${(0.85 * effectiveRoofAlpha).toFixed(2)})`;
+          const ridgeStroke = isXray ? 'rgba(251, 191, 36, 0.65)' : '#cbd5e1';
+
+          if (st.type === 'ming5') {
+            addPoly([rt0, horn1, horn0], roofFill, ridgeStroke, 1.3, layerDim);
+          } else {
+            addPoly([rt0, rt1, horn1, horn0], roofFill, ridgeStroke, 1.2, layerDim);
+          }
+          // Corner ridge (角梁) & wind bell
+          addLine(rt0, horn0, '#f59e0b', 1.5, layerDim);
+          addLine(horn0, bell0, '#fde047', 1.2, layerDim);
+        }
+      }
+
+      // ---------------------------------------------------------------------
+      // 5. INTERIOR GOLDEN BUDDHA STATUES & CAISSON CEILING (内槽辽代彩塑佛像与藻井)
+      //    Visible in Section Cutaway, X-Ray, or Exploded modes!
+      // ---------------------------------------------------------------------
+      if (st.statueH && (cutFraction > 0.05 || isXray || explodeAmount > 0.15)) {
+        const sy0 = yBot + 1.5;
+        const sy1 = sy0 + st.statueH;
+        // Lotus pedestal
+        const pedPts = [];
+        for (let i = 0; i < 8; i++) {
+          const a = OCT_ANGLES[i];
+          pedPts.push(proj(8.5 * Math.cos(a), sy0 + 3, 8.5 * Math.sin(a), off));
+        }
+        addPoly(pedPts, 'rgba(217, 119, 6, 0.55)', '#fbbf24', 1.2, layerDim);
+
+        // Golden Buddha silhouette & Aureole (背光)
+        const pFoot = proj(0, sy0 + 3, 0, off);
+        const pHead = proj(0, sy1, 0, off);
+        addLine(pFoot, pHead, '#fde047', 5.2, layerDim, true);
+
+        // Halo ring behind statue head
+        const haloPts = [];
+        for (let k = 0; k <= 12; k++) {
+          const ha = (k / 12) * Math.PI * 2;
+          haloPts.push(proj(6.2 * Math.cos(ha), sy1 - 2.5 + 6.2 * Math.sin(ha), 0, off));
+        }
+        for (let k = 0; k < haloPts.length - 1; k++) {
+          addLine(haloPts[k], haloPts[k + 1], '#fbbf24', 1.5, layerDim);
+        }
+
+        // Octagonal Caisson Ceiling (八角藻井) directly above the Buddha
+        const cPts = [];
+        for (let i = 0; i < 8; i++) {
+          const a = OCT_ANGLES[i];
+          cPts.push(proj(st.rIn * 0.72 * Math.cos(a), yTop - 1.5, st.rIn * 0.72 * Math.sin(a), off));
+        }
+        addPoly(cPts, 'rgba(16, 185, 129, 0.22)', '#34d399', 1.1, layerDim);
+      }
+
+      // ---------------------------------------------------------------------
+      // 6. HISTORICAL CALLIGRAPHY PLAQUES (《释迦塔》《天下奇观》名匾)
+      // ---------------------------------------------------------------------
+      if (st.plaque && isFocused) {
+        const pz = st.rOut + 4;
+        if (!isClippedBySection(0, pz, false)) {
+          const pPlaque = proj(0, yTop - 3, pz, off);
+          addLabel(pPlaque, st.plaque, 'rgba(15, 23, 42, 0.92)', '#fde047', true);
+        }
+      }
+    }
+
+    // Sort primitives back-to-front (smaller depth is further away in our camera space)
+    prims.sort((a, b) => a.depth - b.depth);
+    return prims;
+  }
+
+  // =========================================================================
+  // MAIN RENDER LOOP
+  // =========================================================================
+  let lastT = performance.now();
+
+  function render(now) {
+    requestAnimationFrame(render);
+    resize();
+
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+    const nowSec = now * 0.001;
+
+    if (autoRotate && !isDragging) {
+      rotY += dt * 0.22;
+    }
+    if (quakeActive) {
+      quakeTime += dt;
+    }
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Subtle architectural blueprint polar grid at ground level
+    const prims = buildPagodaPrimitives(nowSec);
+
+    for (let i = 0; i < prims.length; i++) {
+      const p = prims[i];
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+
+      if (p.type === 'poly') {
+        ctx.beginPath();
+        for (let k = 0; k < p.pts.length; k++) {
+          if (k === 0) ctx.moveTo(p.pts[k].sx, p.pts[k].sy);
+          else ctx.lineTo(p.pts[k].sx, p.pts[k].sy);
+        }
+        ctx.closePath();
+        if (p.fill) {
+          ctx.fillStyle = p.fill;
+          ctx.fill();
+        }
+        if (p.stroke) {
+          ctx.strokeStyle = p.stroke;
+          ctx.lineWidth = p.lineW;
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        }
+      } else if (p.type === 'line') {
+        if (p.glow) {
+          ctx.beginPath();
+          ctx.moveTo(p.p0.sx, p.p0.sy);
+          ctx.lineTo(p.p1.sx, p.p1.sy);
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.width * 2.6;
+          ctx.globalAlpha = p.alpha * 0.28;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+          ctx.globalAlpha = p.alpha;
+        }
+        ctx.beginPath();
+        ctx.moveTo(p.p0.sx, p.p0.sy);
+        ctx.lineTo(p.p1.sx, p.p1.sy);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.width;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      } else if (p.type === 'label') {
+        const fontSize = Math.max(10, Math.round(11 * dpr));
+        ctx.font = `bold ${fontSize}px "PingFang SC", "Noto Serif SC", serif`;
+        const tw = ctx.measureText(p.text).width + 12 * dpr;
+        const th = 20 * dpr;
+        const lx = p.pt.sx - tw * 0.5;
+        const ly = p.pt.sy - th * 0.5;
+        ctx.fillStyle = p.bg;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.4 * dpr;
+        ctx.beginPath();
+        ctx.roundRect(lx, ly, tw, th, 4 * dpr);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = p.fg;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(p.text, p.pt.sx, p.pt.sy);
+      }
+
+      ctx.restore();
+    }
+
+    // Draw elevation dimension scale on the left side of the pagoda
+    drawDimensionRuler(W, H, dpr);
+  }
+
+  function drawDimensionRuler(W, H, dpr) {
+    if ((W / dpr) < 640) return;
+    ctx.save();
+    const rx = 38 * dpr;
+    const yTop = H * 0.16;
+    const yBot = H * 0.80;
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+    ctx.fillStyle = 'rgba(253, 230, 138, 0.85)';
+    ctx.lineWidth = 1.2 * dpr;
+    ctx.font = `${Math.round(11 * dpr)}px ui-monospace, Consolas, monospace`;
+
+    ctx.beginPath();
+    ctx.moveTo(rx, yTop);
+    ctx.lineTo(rx, yBot);
+    ctx.stroke();
+
+    const marks = [
+      { frac: 0.0,  label: '+67.31m 铁刹宝珠' },
+      { frac: 0.18, label: '+51.97m 五层攒尖顶' },
+      { frac: 0.36, label: '+39.62m 四层平坐' },
+      { frac: 0.52, label: '+29.15m 三层檐口' },
+      { frac: 0.68, label: '+19.80m 二层暗层' },
+      { frac: 0.84, label: '+11.12m 底层重檐' },
+      { frac: 1.0,  label: '±0.00m  青石阶基' }
+    ];
+    for (let i = 0; i < marks.length; i++) {
+      const my = yTop + marks[i].frac * (yBot - yTop);
+      ctx.beginPath();
+      ctx.moveTo(rx - 5 * dpr, my);
+      ctx.lineTo(rx + 5 * dpr, my);
+      ctx.stroke();
+      ctx.fillText(marks[i].label, rx + 10 * dpr, my + 4 * dpr);
+    }
+    ctx.restore();
+  }
+
+  // =========================================================================
+  // POINTER / TOUCH ORBIT & ZOOM CONTROLS
+  // =========================================================================
+  let isDragging = false;
+  let lastPX = 0, lastPY = 0;
+  let pinchDist = 0;
+
+  canvas.addEventListener('pointerdown', (e) => {
+    isDragging = true;
+    autoRotate = false;
+    lastPX = e.clientX;
+    lastPY = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastPX;
+    const dy = e.clientY - lastPY;
+    lastPX = e.clientX;
+    lastPY = e.clientY;
+    rotY += dx * 0.0075;
+    rotX = Math.max(-0.55, Math.min(0.85, rotX + dy * 0.006));
+  });
+
+  window.addEventListener('pointerup', () => {
+    isDragging = false;
+  });
+
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoom = Math.max(0.55, Math.min(2.4, zoom * (e.deltaY < 0 ? 1.08 : 0.92)));
+  }, { passive: false });
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      pinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }, { passive: true });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && pinchDist > 0) {
+      const d = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      zoom = Math.max(0.55, Math.min(2.4, zoom * (d / pinchDist)));
+      pinchDist = d;
+    }
+  }, { passive: true });
+
+  // =========================================================================
+  // UI BUTTONS & SLIDERS BINDING
+  // =========================================================================
+  document.querySelectorAll('.tab-btn[data-mode]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn[data-mode]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      viewMode = btn.dataset.mode;
+
+      if (viewMode === 'full') {
+        cutFraction = 0; cutSlider.value = '0';
+        explodeAmount = 0; explodeSlider.value = '0';
+        roofAlpha = 1.0; roofAlphaSlider.value = '100';
+      } else if (viewMode === 'section') {
+        cutFraction = 0.65; cutSlider.value = '65';
+        explodeAmount = 0; explodeSlider.value = '0';
+        roofAlpha = 0.92; roofAlphaSlider.value = '92';
+        rotY = -0.35;
+      } else if (viewMode === 'xray') {
+        cutFraction = 0; cutSlider.value = '0';
+        roofAlpha = 0.15; roofAlphaSlider.value = '15';
+      } else if (viewMode === 'explode') {
+        explodeAmount = 0.68; explodeSlider.value = '68';
+        cutFraction = 0.35; cutSlider.value = '35';
+        zoom = 0.78;
+      }
+    });
+  });
+
+  btnQuake.addEventListener('click', () => {
+    quakeActive = !quakeActive;
+    btnQuake.classList.toggle('active', quakeActive);
+    if (quakeActive) {
+      inspTitle.textContent = '🌊 元大德七年 (1303) 八级大地震响应模拟';
+      inspBadge.textContent = '大震七日 · 唯塔独存';
+      inspDesc.textContent = '注意观察蓝白色高亮的 4 个“暗层”斜撑刚性环！在地震横波作用下，明层的 54 种斗栱产生摩擦滑移耗散地震能量（红柱微倾），而暗层三角形剪刀撑锁死柱网防止整体垮塌。';
+    } else {
+      updateInspector(selectedLayer);
+    }
+  });
+
+  explodeSlider.addEventListener('input', () => {
+    explodeAmount = parseInt(explodeSlider.value, 10) / 100;
+  });
+
+  cutSlider.addEventListener('input', () => {
+    cutFraction = parseInt(cutSlider.value, 10) / 100;
+  });
+
+  roofAlphaSlider.addEventListener('input', () => {
+    roofAlpha = parseInt(roofAlphaSlider.value, 10) / 100;
+  });
+
+  function updateInspector(layerKey) {
+    const info = LAYER_INFO[layerKey] || LAYER_INFO['all'];
+    inspTitle.textContent = info.title;
+    inspBadge.textContent = info.badge;
+    statCols.textContent = info.cols;
+    statMech.textContent = info.mech;
+    inspDesc.textContent = info.desc;
+  }
+
+  document.querySelectorAll('.layer-pill').forEach((pill) => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.layer-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      selectedLayer = pill.dataset.layer;
+      updateInspector(selectedLayer);
+    });
+  });
+
+  requestAnimationFrame(render);
+})();
+</script>
+</body>
+</html>
