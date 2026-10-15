@@ -848,36 +848,40 @@
 
     const layers = state.showNested
       ? [
-          { s: 0.98, cutHalf: cutRad * 0.44, baseTint: 1.0, rimColor: '#00e5ff' },
-          { s: 0.66, cutHalf: cutRad * 0.24, baseTint: 0.94, rimColor: '#ffbf00' },
-          { s: 0.36, cutHalf: cutRad * 0.09, baseTint: 0.90, rimColor: '#ff3d81' }
+          { s: 0.98, cutHalf: cutRad * 0.44, rimColor: '#00e5ff' },
+          { s: 0.66, cutHalf: cutRad * 0.22, rimColor: '#00ff9d' },
+          { s: 0.36, cutHalf: 0.0,           rimColor: '#ffbf00' } // 内芯完整贯通，不断开！
         ]
       : [
-          { s: 0.98, cutHalf: cutRad * 0.35, baseTint: 1.0, rimColor: '#00e5ff' }
+          { s: 0.98, cutHalf: cutRad * 0.35, rimColor: '#00e5ff' }
         ];
 
     for (let lIdx = 0; lIdx < layers.length; lIdx++) {
       const layer = layers[lIdx];
+      // 精确构造从 zeta0 + cutHalf 到 zeta0 + 2PI - cutHalf 的等距环向网格，使断面与端盖 100% 严丝合缝！
+      const spanZeta = Math.PI * 2 - 2 * layer.cutHalf;
+      if (spanZeta <= 0.05) continue;
+      const segsZ = Math.max(24, Math.round((spanZeta / (Math.PI * 2)) * nZeta));
+
       const grid = [];
-      for (let iz = 0; iz <= nZeta; iz++) {
-        const zeta = (iz / nZeta) * Math.PI * 2;
+      for (let iz = 0; iz <= segsZ; iz++) {
+        const zeta = zeta0Rad + layer.cutHalf + (iz / segsZ) * spanZeta;
         const row = [];
         for (let it = 0; it <= nTheta; it++) {
           const theta = (it / nTheta) * Math.PI * 2;
           const phys = evalSurfacePhysics(layer.s, theta, zeta);
           const normVal = normalizeFieldValue(phys);
-          row.push({ pt: phys.p, normVal });
+          row.push({ pt: phys.p, normVal, zeta });
         }
         grid.push(row);
       }
 
-      for (let iz = 0; iz < nZeta; iz++) {
-        const zetaMid = ((iz + 0.5) / nZeta) * Math.PI * 2;
+      for (let iz = 0; iz < segsZ; iz++) {
+        const zetaMid = 0.5 * (grid[iz][0].zeta + grid[iz + 1][0].zeta);
         const dZ = Math.abs(angleDiff(zetaMid, zeta0Rad));
 
-        // 严格只渲染可见区段：如果在外层已覆盖的区域，内层不重复生成面片（大幅提速且杜绝Z闪烁）
-        if (dZ < layer.cutHalf) continue;
-        if (lIdx > 0 && dZ > layers[lIdx - 1].cutHalf + 0.08) continue;
+        // 若被外层磁面完全包住，则跳过隐藏部分（留 0.06 rad 重叠余量防接缝漏光）
+        if (lIdx > 0 && layers[lIdx - 1].cutHalf > 0 && dZ > layers[lIdx - 1].cutHalf + 0.06) continue;
 
         for (let it = 0; it < nTheta; it++) {
           const p00 = grid[iz][it];
@@ -905,8 +909,8 @@
         }
       }
 
-      // 在每一层的两个切口断面 (zeta = zeta0 ± cutHalf) 生成实心环形横截面端盖 (Solid Annular End-Cap)!
-      if (state.showSlicer && layer.cutHalf > 0.02) {
+      // 在每一层的两个精确切口断面 (zeta = zeta0 ± cutHalf) 生成严丝合缝的实心环形横截面端盖!
+      if (layer.cutHalf > 0.02) {
         const sInner = (lIdx < layers.length - 1) ? layers[lIdx + 1].s : 0.0;
         const capZetas = [zeta0Rad - layer.cutHalf, zeta0Rad + layer.cutHalf];
         for (const zCap of capZetas) {
@@ -918,7 +922,8 @@
             const in1  = evalStellaratorPoint(sInner,  th1, zCap, true);
             const in0  = evalStellaratorPoint(sInner,  th0, zCap, true);
 
-            const rgb = colormap(1.0 - 0.78 * layer.s);
+            const physMid = evalSurfacePhysics(0.5 * (layer.s + sInner), 0.5 * (th0 + th1), zCap);
+            const rgb = colormap(normalizeFieldValue(physMid));
             endCapPolys.push({
               v0: out0, v1: out1, v2: in1, v3: in0,
               rgb,
@@ -931,12 +936,11 @@
 
     // -----------------------------------------------------------------------
     // 4.2 40 组真 3D 四面体立体非平面模块化超导线圈 (3D Extruded Box Coils)
-    //     每根线圈具有径向厚度 dr 和环向宽度 dz，包含外壁、内壁、两侧壁 4 个立体受光面！
     // -----------------------------------------------------------------------
     const coilBoxes = [];
     const totalCoils = Nfp * 8;
     const coilSegs = 40;
-    const cutHalfCoil = cutRad * 0.52;
+    const cutHalfCoil = cutRad * 0.50;
 
     for (let k = 0; k < totalCoils; k++) {
       const zetaBase = (k / totalCoils) * Math.PI * 2;
@@ -945,13 +949,12 @@
       const ring = [];
       for (let i = 0; i <= coilSegs; i++) {
         const theta = (i / coilSegs) * Math.PI * 2;
-        // 电流势反演的非平面三维扭摆 Δζ(θ)
         const warpZeta = zetaBase
           + (0.22 * state.helicity / (Nfp / 5)) * Math.sin(theta - Nfp * zetaBase)
           + (0.14 * state.shaping / (Nfp / 5)) * Math.sin(2 * theta - Nfp * zetaBase)
           - 0.05 * state.shaping * Math.sin(3 * theta - 2 * Nfp * zetaBase);
 
-        const dzWidth = 0.022; // 线圈箱体环向半宽
+        const dzWidth = 0.022;
         const pInL  = evalStellaratorPoint(1.22, theta, warpZeta - dzWidth, false);
         const pInR  = evalStellaratorPoint(1.22, theta, warpZeta + dzWidth, false);
         const pOutL = evalStellaratorPoint(1.38, theta, warpZeta - dzWidth, false);
@@ -962,22 +965,18 @@
       for (let i = 0; i < coilSegs; i++) {
         const a = ring[i], b = ring[i + 1];
         const shadeWave = 0.65 + 0.35 * Math.cos(a.theta - zetaBase);
-        // 外壁面 (Outer Casing)
         coilBoxes.push({
           v0: a.pOutL, v1: a.pOutR, v2: b.pOutR, v3: b.pOutL,
           faceType: 'outer', shadeWave
         });
-        // 左侧壁面 (Left Side Wall)
         coilBoxes.push({
           v0: a.pInL, v1: a.pOutL, v2: b.pOutL, v3: b.pInL,
           faceType: 'side', shadeWave
         });
-        // 右侧壁面 (Right Side Wall)
         coilBoxes.push({
           v0: a.pOutR, v1: a.pInR, v2: b.pInR, v3: b.pOutR,
           faceType: 'side', shadeWave
         });
-        // 内壁超导槽 (Inner Superconducting Channel)
         coilBoxes.push({
           v0: a.pInR, v1: a.pInL, v2: b.pInL, v3: b.pInR,
           faceType: 'inner', shadeWave
@@ -986,7 +985,7 @@
     }
 
     // -----------------------------------------------------------------------
-    // 4.3 三维螺旋磁轴分段 (参与全局 Z-Buffer 深度排序，绝不穿墙!)
+    // 4.3 三维螺旋磁轴分段
     // -----------------------------------------------------------------------
     const axisSegs = [];
     const nAxis = 180;
@@ -999,13 +998,13 @@
     }
 
     // -----------------------------------------------------------------------
-    // 4.4 四阶龙格-库塔 (RK4) 磁力线分段 (紧贴各自磁面外侧 +0.015，参与全局深度排序!)
+    // 4.4 四阶龙格-库塔 (RK4) 连续闭合磁力线 (在切口处不断开，形成贯穿激光环的立体磁笼!)
     // -----------------------------------------------------------------------
     const fieldLineSegs = [];
     const lineConfigs = [
-      { s0: 0.995, color: '#00f7ff', width: 2.0, steps: 340, cutHalf: cutRad * 0.44 },
-      { s0: 0.675, color: '#ffbf00', width: 1.9, steps: 280, cutHalf: cutRad * 0.24 },
-      { s0: 0.375, color: '#ff3d81', width: 1.9, steps: 240, cutHalf: cutRad * 0.09 }
+      { s0: 0.992, color: '#00f7ff', width: 1.75, steps: 380, loops: 3 },
+      { s0: 0.672, color: '#00ff9d', width: 1.75, steps: 320, loops: 3 },
+      { s0: 0.372, color: '#ffbf00', width: 1.85, steps: 260, loops: 3 }
     ];
 
     for (let lc = 0; lc < lineConfigs.length; lc++) {
@@ -1013,8 +1012,8 @@
       if (!state.showNested && lc > 0) continue;
       const psi0 = cfg.s0 * cfg.s0;
       const iota = state.iota0 + (state.iota1 - state.iota0) * psi0;
-      let theta = lc * 1.1;
-      const dZeta = (Math.PI * 2 * 2) / cfg.steps;
+      let theta = lc * 0.9;
+      const dZeta = (Math.PI * 2 * cfg.loops) / cfg.steps;
       let prevPt = evalStellaratorPoint(cfg.s0, theta, 0, true);
 
       for (let i = 1; i <= cfg.steps; i++) {
@@ -1024,21 +1023,12 @@
         theta += dZeta * k2;
         const curPt = evalStellaratorPoint(cfg.s0, theta, zeta, true);
 
-        const dZ = Math.abs(angleDiff(zeta, zeta0Rad));
-        // 只在该层磁面暴露的区间显示其表面的磁力线
-        let visible = true;
-        if (lc === 0 && dZ < cfg.cutHalf) visible = false;
-        if (lc === 1 && (dZ < cfg.cutHalf || dZ > layers[0].cutHalf)) visible = false;
-        if (lc === 2 && (dZ < cfg.cutHalf || dZ > layers[1].cutHalf)) visible = false;
-
-        if (visible) {
-          fieldLineSegs.push({
-            p0: prevPt,
-            p1: curPt,
-            color: cfg.color,
-            width: cfg.width
-          });
-        }
+        fieldLineSegs.push({
+          p0: prevPt,
+          p1: curPt,
+          color: cfg.color,
+          width: cfg.width
+        });
         prevPt = curPt;
       }
     }
