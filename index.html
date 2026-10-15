@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DLSS 5 交互式架构拆解与 RDNA4 (RX 9070 XT) 极限优化教程</title>
+<style>
+  :root {
+    --bg: #05080f;
+    --panel: rgba(11, 17, 28, 0.90);
+    --border: rgba(0, 224, 255, 0.25);
+    --amber: #ffbf00;
+    --cyan: #00e5ff;
+    --emerald: #00ff9d;
+    --crimson: #ff3864;
+    --purple: #b86bff;
+    --text: #ecf3f8;
+    --muted: #849ab0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+  #gl-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    cursor: grab;
+  }
+  #gl-canvas:active { cursor: grabbing; }
+
+  .hud {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: 360px 1fr 420px;
+    grid-template-rows: 72px 1fr 116px;
+    gap: 12px;
+    padding: 12px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    backdrop-filter: blur(12px);
+    pointer-events: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), inset 0 0 18px rgba(0, 229, 255, 0.04);
+  }
+
+  /* Top Bar */
+  .topbar {
+    grid-column: 1 / 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .chip-badge {
+    padding: 6px 10px; border-radius: 7px;
+    background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,255,157,0.15));
+    border: 1px solid var(--cyan);
+    font-family: Consolas, Monaco, monospace;
+    font-weight: 800; font-size: 13px; color: var(--cyan);
+    box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
+  }
+  .brand-title {
+    font-size: 17px; font-weight: 800; letter-spacing: 0.8px;
+    background: linear-gradient(90deg, #fff, var(--cyan), var(--emerald));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .brand-sub {
+    font-size: 11.5px; color: var(--muted);
+    font-family: Consolas, Monaco, monospace; margin-top: 2px;
+  }
+
+  .kpi-group { display: flex; gap: 22px; align-items: center; }
+  .kpi { text-align: right; }
+  .kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .kpi-val {
+    font-size: 22px; font-weight: 800;
+    font-family: Consolas, Monaco, monospace;
+    color: var(--cyan); text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+  }
+  .kpi-val.gold { color: var(--amber); text-shadow: 0 0 12px rgba(255, 191, 0, 0.45); }
+  .kpi-val.green { color: var(--emerald); text-shadow: 0 0 14px rgba(0, 255, 157, 0.55); }
+  .kpi-val.warn { color: var(--crimson); text-shadow: 0 0 12px rgba(255, 56, 100, 0.5); }
+
+  /* Left Panel */
+  .left-panel {
+    grid-column: 1 / 2; grid-row: 2 / 3;
+    display: flex; flex-direction: column; padding: 14px; overflow-y: auto; gap: 8px;
+  }
+  .section-head {
+    font-size: 12.5px; font-weight: 700; color: var(--amber);
+    letter-spacing: 0.8px; display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .cut-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px; padding: 9px 11px;
+    cursor: pointer; transition: all 0.18s ease;
+  }
+  .cut-card:hover {
+    border-color: var(--cyan); background: rgba(0, 229, 255, 0.08);
+    transform: translateX(3px);
+  }
+  .cut-card.active {
+    border-color: var(--emerald);
+    background: linear-gradient(135deg, rgba(0, 255, 157, 0.13), rgba(0, 229, 255, 0.04));
+    box-shadow: inset 3px 0 0 var(--emerald);
+  }
+  .cut-card.selected-inspect { outline: 1.5px solid var(--amber); }
+  .cut-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+  .cut-name { font-size: 12.5px; font-weight: 700; color: #fff; }
+  .cut-delta {
+    font-family: Consolas, Monaco, monospace; font-size: 11px; font-weight: 700;
+    color: var(--emerald); background: rgba(0, 255, 157, 0.14);
+    padding: 1px 6px; border-radius: 4px;
+  }
+  .cut-card:not(.active) .cut-delta { color: var(--muted); background: rgba(255,255,255,0.06); }
+  .cut-desc { font-size: 11px; color: var(--muted); line-height: 1.38; }
+
+  /* Center Tutorial Overlay */
+  .center-overlay {
+    grid-column: 2 / 3; grid-row: 2 / 3;
+    pointer-events: none; position: relative;
+    display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+    padding: 6px 10px;
+  }
+  .tutorial-card {
+    pointer-events: auto;
+    width: 100%;
+    background: rgba(8, 14, 24, 0.92);
+    border: 1px solid rgba(255, 191, 0, 0.55);
+    border-radius: 10px; padding: 12px 16px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.75);
+  }
+  .lesson-tabs {
+    display: flex; gap: 6px; margin-bottom: 9px; flex-wrap: wrap;
+  }
+  .lesson-tab {
+    padding: 4px 10px; border-radius: 5px;
+    font-size: 11px; font-weight: 700;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .lesson-tab:hover { color: #fff; border-color: var(--cyan); }
+  .lesson-tab.active {
+    background: rgba(255, 191, 0, 0.2);
+    border-color: var(--amber); color: var(--amber);
+  }
+  .lesson-body {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  }
+  .lesson-text-wrap { flex: 1; }
+  .lesson-title { font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .lesson-desc { font-size: 12px; color: #d0e4f5; line-height: 1.5; }
+  .lesson-nav { display: flex; gap: 6px; flex-shrink: 0; }
+  .nav-btn {
+    padding: 7px 12px; border-radius: 6px;
+    border: 1px solid var(--amber); background: rgba(255,191,0,0.15);
+    color: var(--amber); font-weight: 700; font-size: 11.5px; cursor: pointer;
+  }
+  .nav-btn:hover { background: rgba(255,191,0,0.3); color: #fff; }
+
+  .hint-pill {
+    background: rgba(5, 8, 14, 0.85);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    padding: 7px 16px; border-radius: 20px;
+    font-size: 11.5px; color: #b8d4e8;
+  }
+
+  /* Right Panel */
+  .right-panel {
+    grid-column: 3 / 4; grid-row: 2 / 3;
+    display: flex; flex-direction: column; padding: 14px; gap: 10px; overflow: hidden;
+  }
+  .meter-box {
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px; padding: 10px;
+  }
+  .meter-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+  .progress-track {
+    width: 100%; height: 7px; background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px; overflow: hidden; margin-bottom: 8px;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--cyan), var(--emerald));
+    border-radius: 4px; transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .progress-fill.amber { background: linear-gradient(90deg, var(--amber), #ff5500); }
+
+  .isa-terminal {
+    flex: 1; background: #030508;
+    border: 1px solid rgba(0, 229, 255, 0.22);
+    border-radius: 8px; padding: 10px;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 11.5px; overflow-y: auto; line-height: 1.48; color: #a9c5d8;
+  }
+  .isa-line { white-space: pre-wrap; margin-bottom: 2px; }
+  .isa-bad { color: var(--crimson); background: rgba(255, 56, 100, 0.08); padding: 1px 4px; border-radius: 3px; }
+  .isa-good { color: var(--emerald); font-weight: 700; background: rgba(0, 255, 157, 0.08); padding: 1px 4px; border-radius: 3px; }
+  .isa-comment { color: #68889e; }
+  .isa-head { color: var(--amber); font-weight: bold; margin: 6px 0 4px 0; border-bottom: 1px dashed rgba(255,191,0,0.25); padding-bottom: 3px; }
+
+  /* Bottom Bar */
+  .bottom-panel {
+    grid-column: 1 / 4; grid-row: 3 / 4;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; gap: 14px;
+  }
+  .stage-pills { display: flex; gap: 7px; flex: 1; }
+  .stage-btn {
+    flex: 1; background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px; padding: 8px 9px; color: var(--text);
+    cursor: pointer; transition: all 0.18s; text-align: left;
+  }
+  .stage-btn:hover, .stage-btn.active {
+    border-color: var(--amber); background: rgba(255, 191, 0, 0.14);
+    transform: translateY(-2px);
+  }
+  .stage-btn-title { font-size: 11.5px; font-weight: 700; color: var(--amber); }
+  .stage-btn-meta { font-size: 10px; color: var(--muted); font-family: Consolas, monospace; margin-top: 2px; }
+  .stage-btn-ms { font-size: 13px; font-weight: 800; color: var(--cyan); font-family: Consolas, monospace; margin-top: 3px; }
+
+  .action-btns { display: flex; flex-direction: column; gap: 6px; width: 255px; }
+  .btn-row { display: flex; gap: 6px; }
+  .btn {
+    flex: 1; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid var(--cyan); background: rgba(0, 229, 255, 0.12);
+    color: #fff; font-size: 11.5px; font-weight: 700;
+    cursor: pointer; transition: all 0.18s; text-align: center;
+  }
+  .btn:hover { background: rgba(0, 229, 255, 0.28); box-shadow: 0 0 14px rgba(0, 229, 255, 0.4); }
+  .btn.amber { border-color: var(--amber); background: rgba(255, 191, 0, 0.16); color: var(--amber); }
+  .btn.amber:hover { background: rgba(255, 191, 0, 0.32); box-shadow: 0 0 14px rgba(255, 191, 0, 0.45); }
+
+  #node-tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: rgba(6, 10, 18, 0.96);
+    border: 1px solid var(--amber); border-radius: 8px;
+    padding: 10px 13px; font-family: Consolas, Monaco, monospace;
+    font-size: 11.5px; display: none;
+    box-shadow: 0 0 24px rgba(255, 191, 0, 0.35);
+    min-width: 250px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gl-canvas"></canvas>
+<div id="node-tooltip"></div>
+
+<div class="hud">
+  <!-- Top Bar -->
+  <div class="panel topbar">
+    <div class="brand">
+      <div class="chip-badge">DLSS 5 // RDNA4</div>
+      <div>
+        <div class="brand-title">DLSS 5 神经渲染架构交互式教程 & RX 9070 XT 算子优化实战</div>
+        <div class="brand-sub">71-Block Hybrid Swin-U-Net + ViT 架构拆解 · RDNA4 (gfx1201) 汇编级调优全记录</div>
+      </div>
+    </div>
+    <div class="kpi-group">
+      <div class="kpi">
+        <div class="kpi-label">1920×1152 纯网络耗时</div>
+        <div class="kpi-val" id="kpi-ms">9.055 ms</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">最佳稳态槽位</div>
+        <div class="kpi-val gold" id="kpi-best">8.945 ms</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">《剑星》2K 实机帧率</div>
+        <div class="kpi-val green" id="kpi-fps">60.0 FPS</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">每帧 Kernel 启动数</div>
+        <div class="kpi-val" id="kpi-disp">153</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">FP16 逐位精度校验</div>
+        <div class="kpi-val green" style="font-size:14px;">0900E489… (0-DIFF)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Left Panel -->
+  <div class="panel left-panel">
+    <div class="section-head">
+      <span>⚡ RDNA4 实战 6 大优化开关</span>
+      <span id="active-cuts-badge" style="color:var(--emerald);font-family:monospace;">6 / 6 已开启</span>
+    </div>
+    <div style="font-size:11px;color:#b8d0e4;line-height:1.4;padding:4px 2px;">
+      👇 点击任意卡片可<b>单独开关该项优化</b>，观察中央粒子流速度变化与右侧真实的 <b>RDNA4 机器码对比</b>：
+    </div>
+    <div id="cuts-container" style="display:flex;flex-direction:column;gap:7px;"></div>
+  </div>
+
+  <!-- Center Overlay: 5-Step Interactive Course -->
+  <div class="center-overlay">
+    <div class="tutorial-card">
+      <div class="lesson-tabs" id="lesson-tabs"></div>
+      <div class="lesson-body">
+        <div class="lesson-text-wrap">
+          <div class="lesson-title" id="lesson-title"></div>
+          <div class="lesson-desc" id="lesson-desc"></div>
+        </div>
+        <div class="lesson-nav">
+          <button class="nav-btn" id="btn-prev-lesson">◀ 上一课</button>
+          <button class="nav-btn" id="btn-next-lesson">下一课 ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-pill">
+      🖱️ 左键拖拽 360° 旋转模型 · 滚轮远近缩放 · 鼠标悬停任意节点查看该层算子详情与耗时
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel right-panel">
+    <div class="section-head">
+      <span>🔬 RX 9070 XT (gfx1201) 硬件指标</span>
+      <span id="focus-stage-label" style="color:var(--cyan);font-family:monospace;">ALL 71 BLOCKS</span>
+    </div>
+    <div class="meter-box">
+      <div class="meter-row">
+        <span>L0 向量合并访存效率 (16-Byte b128)</span>
+        <span id="val-l0" style="color:var(--emerald);font-family:monospace;">96.4%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="bar-l0" style="width:96.4%"></div></div>
+
+      <div class="meter-row">
+        <span>SIMD Wave 并发驻留率 (ViT / C512)</span>
+        <span id="val-occ" style="color:var(--cyan);font-family:monospace;">9.2 / 10 waves</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="bar-occ" style="width:92%"></div></div>
+
+      <div class="meter-row">
+        <span>每帧省下的显存读写流量 (1B E4M3 流)</span>
+        <span id="val-bw" style="color:var(--amber);font-family:monospace;">-681.5 MB / 帧</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill amber" id="bar-bw" style="width:95%"></div></div>
+
+      <canvas id="spark-canvas" width="368" height="48" style="width:100%;height:48px;background:rgba(3,6,11,0.9);border:1px solid rgba(0,229,255,0.22);border-radius:6px;margin-top:2px;"></canvas>
+    </div>
+
+    <div class="section-head" style="margin-top:2px;">
+      <span>⚙️ RDNA4 (GFX1201) 汇编对比</span>
+      <span id="isa-tag" style="color:var(--emerald);font-family:monospace;font-size:11px;">[CUT #6]</span>
+    </div>
+    <div class="isa-terminal" id="isa-terminal"></div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="panel bottom-panel">
+    <div class="stage-pills" id="stage-pills"></div>
+    <div class="action-btns">
+      <div class="btn-row">
+        <button class="btn amber" id="btn-all-on">⚡ 优化全开 (60 FPS)</button>
+        <button class="btn" id="btn-baseline">🐢 退回未优化基线</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn-pulse">🌊 发射单帧前向脉冲</button>
+        <button class="btn" id="btn-reset-cam">🎥 复位全局 3D 视角</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 1. 5 步交互式 DLSS 5 教学课程定义
+// ============================================================================
+const LESSONS = [
+  {
+    tab: '第 1 课：DLSS 5 全景',
+    title: '1. DLSS 5 到底在算什么？（71 层 Swin-U-Net + ViT 混合神经渲染）',
+    desc: '游戏引擎每帧输入 <b>11 张 D3D12 缓冲图</b>（带噪光追颜色、反照率 Albedo、法线 Normal、粗糙度、深度、运动矢量 MV 与历史帧，见左上角琥珀色输入端）。先经 <b>2×2 Patch Embed</b> 压成 `960×576` 的 32 通道特征，随后穿过中央 <b>71 个算子块</b>，在右上角青色输出端重建出干净、光影细节逼真的完整帧。',
+    stage: 'ALL',
+    cam: { rotX: 0.26, rotY: 0.18, zoom: 1.0, panY: 0 }
+  },
+  {
+    tab: '第 2 课：为什么是 V 字形？',
+    title: '2. 为什么模型长成 V 字形？（5 级空间下采样 + 5 座跨层残差光桥）',
+    desc: '如果在全分辨率 (`960×576`) 直接做复杂推理，显存和算力会瞬间爆炸。因此左侧 <b>Encoder</b> 分 4 次把分辨率长宽折半（`C32→C64→C128→C256→C512`），通道数翻倍以提炼高级光影语义；右侧 <b>Decoder</b> 再逐级放大回去。中间 <b>5 条虚线光桥 (Skip-Connections)</b> 负责把浅层的高清几何边缘直接抄近道送给右侧，防止画面变糊。',
+    stage: 'C32',
+    cam: { rotX: 0.18, rotY: -0.05, zoom: 1.05, panY: 15 }
+  },
+  {
+    tab: '第 3 课：谷底 ViT 瓶颈',
+    title: '3. 谷底的紫色核心：为什么在 30×18 分辨率要放 9 层 Vision Transformer？',
+    desc: '浅层和中层使用的是 <b>8×8 局部窗口注意力 (Swin Window Attention)</b>，算得快但“视野窄”，看不见屏幕另一头飞过来的反射光或大范围阴影。当特征图在谷底缩小到仅 `30×18`（约 640 个 Token）时，模型切换为 <b>ViT 全局注意力瓶颈</b>，让全屏幕每一个区域两两直接对话，打通全局光照一致性。',
+    stage: 'ViT',
+    cam: { rotX: 0.25, rotY: 0.0, zoom: 1.48, panY: -68 }
+  },
+  {
+    tab: '第 4 课：C512 重装主干',
+    title: '4. 算力主战场：C512 深层主干与 RDNA4 FP8 WMMA 矩阵引擎',
+    desc: '紧挨谷底两侧的 <b>C512 阶段（18 个块，通道数高达 512）</b> 吃掉了全网近四分之一的算力。每一层都包含 `QKV Attention`、`Projection` 和带 3×3 深度卷积的 `Split-FFN`。在 RX 9070 XT 上，我们用硬件 <b>FP8 矩阵指令 (`v_wmma_f32_16x16x16_fp8_fp8`)</b> 驱动这些巨型矩阵乘法。',
+    stage: 'C512',
+    cam: { rotX: 0.30, rotY: 0.24, zoom: 1.32, panY: -42 }
+  },
+  {
+    tab: '第 5 课：6 刀破 9ms 实战',
+    title: '5. 实战压榨 RX 9070 XT：从 9.61ms 到 8.95ms，锁死《剑星》60 FPS！',
+    desc: '即便用上了 FP8 WMMA，如果<b>内存加载是零碎的 8-Byte</b>、<b>寄存器超标压垮并发度</b>、或者<b>层与层之间把 1B FP8 还原成 4B Float 反复读写显存</b>，GPU 依然有近 20% 时间在空等内存。请点击左侧 6 张优化卡片或右下角【退回未优化基线】，直观对比我们如何砍掉 681.5 MB/帧冗余流量与数百条分支指令！',
+    stage: 'ALL',
+    cam: { rotX: 0.28, rotY: -0.22, zoom: 1.05, panY: -10 }
+  }
+];
+
+// ============================================================================
+// 2. 真实 6 大实战优化刀数据 & GFX1201 ISA 反汇编
+// ============================================================================
+const CUTS = [
+  {
+    id: 'c512_w16',
+    name: '1. C512 主干权重 16B 向量化 (W16)',
+    commit: '02626c84',
+    deltaUs: 16.7,
+    dispDelta: 0,
+    bwSavedMB: 0,
+    l0Gain: 4.2,
+    occGain: 2.0,
+    desc: 'QKV + AttnProj + SplitProj 权重重排为连续 16B (b128)，消除 2×8B 拆包访问。',
+    isaBefore: [
+      '; [优化前] c512_qkv_attention_compact (2 条分离的 8B 加载)',
+      'global_load_b64 v[40:41], v[12:13], off offset:0',
+      'global_load_b64 v[42:43], v[14:15], off offset:2048',
+      's_wait_loadcnt 0x0   ; 两次跨步请求，L0 合并效率低'
+    ],
+    isaAfter: [
+      '; [优化后] c512_qkv_attention_compact_w16 (单条 16B 满宽加载)',
+      'global_load_b128 v[40:43], v[12:13], off offset:0',
+      'v_wmma_f32_16x16x16_fp8_fp8 v[0:7], v[32:35], v[40:43], v[0:7]',
+      '; 两个 K16 半块离线拼成连续 16B，VMEM 指令数直接减半！'
+    ]
+  },
+  {
+    id: 'split_ffn_w16',
+    name: '2. C512 Split-FFN 16B 满载 (-131 µs)',
+    commit: '411db2ed',
+    deltaUs: 131.2,
+    dispDelta: 0,
+    bwSavedMB: 0,
+    l0Gain: 7.5,
+    occGain: 3.5,
+    desc: '消灭 split_ffn_one_w2f8 内 160 条 load_b64，换 80 条连续 load_b128。',
+    isaBefore: [
+      '; [优化前] split_ffn_one_w2f8 (Mix/Expand/Contract 零碎 8B)',
+      'global_load_b64 v[64:65], v[20:21], s[4:5] ; 单核高达 160 条!',
+      'global_load_b64 v[66:67], v[22:23], s[4:5]',
+      '; L0 Load Queue 被 8B 小包塞满，造成严重 Memory Stall'
+    ],
+    isaAfter: [
+      '; [优化后] split_ffn_one_w2f8_w16 (80 条连续 16B 向量加载)',
+      'global_load_b128 v[64:67], v[20:21], s[4:5] offset:0',
+      'global_load_b128 v[68:71], v[20:21], s[4:5] offset:512',
+      '; 单核净砍 80 条全局访存指令 × 16 层 = 每帧少发 1280 次请求！'
+    ]
+  },
+  {
+    id: 'c32_vec',
+    name: '3. C32 高清层 W16 + LDS 128位向量化',
+    commit: '3a465687 + 9241808a',
+    deltaUs: 29.6,
+    dispDelta: 0,
+    bwSavedMB: 0,
+    l0Gain: 3.1,
+    occGain: 1.5,
+    desc: 'c32_wave1 权重 W16 + finish/post 尾部 16 条标量 ds_load_b32 合并为 4 条 ds_load_b128。',
+    isaBefore: [
+      '; [优化前] c32_wave1_finish (标量逐个读写 LDS 共享内存)',
+      'ds_load_b32 v10, v2 offset:0',
+      'ds_load_b32 v11, v2 offset:4   ; 连续 16 条标量指令排队',
+      'global_store_b32 v[4:5], v10, off'
+    ],
+    isaAfter: [
+      '; [优化后] c32_wave1_finish (4 条 128-bit 向量突发读写)',
+      'ds_load_b128 v[10:13], v2 offset:0',
+      'ds_load_b128 v[14:17], v2 offset:16',
+      'global_store_b128 v[4:5], v[10:13], off ; LDS 与写回带宽翻 4 倍'
+    ]
+  },
+  {
+    id: 'vit_w16_vgpr',
+    name: '4. ViT 寄存器瘦身 (-96 VGPR 翻倍驻留)',
+    commit: 'cff1f054',
+    deltaUs: 56.6,
+    dispDelta: 0,
+    bwSavedMB: 0,
+    l0Gain: 4.0,
+    occGain: 12.0,
+    desc: '禁用 out_part=0..3 外层循环展开，Contract 核寄存器从 212 暴降至 116！',
+    isaBefore: [
+      '; [优化前] vit_stream_contract_frag_bout_compactw',
+      '; .vgpr_count = 212 (寄存器占用过高，卡死 SIMD Wave 驻留数!)',
+      '; 编译器强行展开 4 轮外层循环，240 条 load_b64 挤爆寄存器文件'
+    ],
+    isaAfter: [
+      '; [优化后] vit_stream_contract_frag_bout_compactw_w16',
+      '; .vgpr_count = 116 (立省 96 个 VGPR! 跨越 Occupancy 档位台阶)',
+      '; Project 核同步从 190 -> 114 VGPR (-76)，并发延迟隐藏能力倍增'
+    ]
+  },
+  {
+    id: 'epilogue_fmed3',
+    name: '5. 全网 Epilogue fmed3f 无分支化 (-146 µs)',
+    commit: 'd5b72614',
+    deltaUs: 146.2,
+    dispDelta: 0,
+    bwSavedMB: 0,
+    l0Gain: 2.0,
+    occGain: 4.5,
+    desc: '用 IEEE-754 (x+0.f) 与硬件 v_med3_num_f32 消灭 -0.0f 分支风暴与动态寄存器索引。',
+    isaBefore: [
+      '; [优化前] 每个输出元素都要跑动态索引 + -0.0f 分支判断:',
+      'v_movrels_b32 v1, v[40+s0]       ; 动态寄存器寻址阻塞流水线',
+      'v_cmp_neq_f32_e32 vcc, 0, v1     ; 检查是否等于 0.0f',
+      'v_cndmask_b32_e32 v1, 0, v1, vcc ; 条件掩码 (单核 58 条 cbranch!)',
+      'v_max_num_f32_e32 v1, 0xc3e00000, v1'
+    ],
+    isaAfter: [
+      '; [优化后] (x + 0.f) 自动把 -0.0f 归零 + 单指令硬件三元钳位:',
+      'v_add_f32_e32 v1, 0, v1          ; IEEE-754: -0.0 + 0.0 = +0.0',
+      'v_med3_num_f32 v1, v1, -448.0, 448.0 ; 1 条指令完成上下界截断',
+      'v_cvt_pk_fp8_f32 v0, v1, v2      ; split_proj 单核净砍 169 条指令!'
+    ]
+  },
+  {
+    id: 'vit_byte_stream',
+    name: '6. ViT + C512 全链路 1B E4M3 字节流 (-248 µs)',
+    commit: 'e337af3d + be506729',
+    deltaUs: 247.8,
+    dispDelta: -8,
+    bwSavedMB: 681.5,
+    l0Gain: 6.6,
+    occGain: 3.5,
+    desc: 'HIP_VIT_INTER_BYTE=15 消灭全部 8 次 vit_pack_input 启动，每帧省 681.5 MB 显存读写！',
+    isaBefore: [
+      '; [优化前] 算子间绕道 4-Byte FP32 显存缓冲:',
+      'global_store_b128 v[0:1], v[10:13] ; 写出 4B float (浪费 4 倍带宽)',
+      '; ---> 随后被迫额外启动 8 次 vit_pack_input 读回再压成 FP8 <---',
+      'global_load_b128 v[10:13], v[0:1]  ; 每帧白白烧掉 681.5 MB DRAM 流量!'
+    ],
+    isaAfter: [
+      '; [优化后] HIP_VIT_INTER_BYTE=15 原生 1-Byte E4M3 直通流:',
+      'v_cvt_pk_fp8_f32 v10, v1, v2       ; 寄存器内直接打包 4 个 FP8 字节',
+      'global_store_b32 v[0:1], v10, off  ; 显存写出量骤降 75% (4B -> 1B)',
+      '; 0 次 vit_pack_input 启动! 显存池再省 1.1 MiB，突破 8.95 ms!'
+    ]
+  }
+];
+
+const STAGES = [
+  { id: 'ALL',  name: '全部 71 层总览', meta: '1920×1152 · 完整 U-Net', baseMs: 9.609, optMs: 9.055 },
+  { id: 'C32',  name: 'C32 (首尾高清层)', meta: '960×576 · 8 层',  baseMs: 2.750, optMs: 2.720 },
+  { id: 'C64',  name: 'C64 (浅层 Swin)', meta: '480×288 · 9 层',  baseMs: 0.708, optMs: 0.695 },
+  { id: 'C128', name: 'C128 (中层 Swin)', meta: '240×144 · 11 层', baseMs: 0.735, optMs: 0.720 },
+  { id: 'C256', name: 'C256 (常驻大核)', meta: '120×72 · 15 层',  baseMs: 1.472, optMs: 1.450 },
+  { id: 'C512', name: 'C512 (深层主干)', meta: '60×36 · 18 层',   baseMs: 2.265, optMs: 1.980 },
+  { id: 'ViT',  name: 'ViT (谷底全局层)', meta: '30×18 · 9 层',    baseMs: 1.199, optMs: 0.945 }
+];
+
+// 构建 71 个真实算子块坐标（3D U-Net V 型拓扑）
+const BLOCKS = [];
+const STAGE_COLORS = {
+  C32:  [0, 229, 255],
+  C64:  [0, 255, 170],
+  C128: [80, 190, 255],
+  C256: [255, 191, 0],
+  C512: [255, 65, 115],
+  ViT:  [190, 100, 255]
+};
+
+function getBlockStage(idx) {
+  if (idx <= 3 || idx >= 66) return 'C32';
+  if (idx <= 7 || idx >= 61) return 'C64';
+  if (idx <= 12 || idx >= 55) return 'C128';
+  if (idx <= 19 || idx >= 47) return 'C256';
+  if (idx <= 28 || idx >= 38) return 'C512';
+  return 'ViT';
+}
+
+const STAGE_DEPTH = { C32: 0, C64: 1, C128: 2, C256: 3, C512: 4, ViT: 5 };
+const STAGE_RES   = { C32: '960×576 (552K tok)', C64: '480×288 (138K tok)', C128: '240×144 (34.5K tok)', C256: '120×72 (8.6K tok)', C512: '60×36 (2.1K tok)', ViT: '30×18 (640 tok)' };
+
+for (let i = 0; i <= 70; i++) {
+  const st = getBlockStage(i);
+  const d = STAGE_DEPTH[st];
+  const t = (i - 35) / 35; // -1 .. +1
+  const x = t * 430;
+  const y = 135 - d * 54 + Math.sin(i * 0.45) * 5;
+  const z = Math.cos(t * Math.PI) * 72 + (i >= 29 && i <= 37 ? Math.sin((i - 29) * 0.8) * 32 : 0);
+  const radius = 7.5 + d * 2.7;
+
+  let kName = `${st.toLowerCase()}_swin_block_${i}`;
+  let roleDesc = '8×8 窗口注意力 + FFN 特征变换';
+  if (st === 'C512') {
+    kName = (i % 2 === 0) ? `c512_qkv_attention_compact_w16` : `split_ffn_one_w2f8_w16`;
+    roleDesc = '512 通道深层注意力 + 3×3 DWConv Split-FFN';
+  } else if (st === 'ViT') {
+    kName = (i % 2 === 0) ? `vit_stream_contract_frag_w16` : `vit_stream_project_n64_w16`;
+    roleDesc = '全屏 640 Token 全局自注意力耦合 (1B E4M3 直通)';
+  } else if (st === 'C32') {
+    kName = `c32_wave1_b128_vec`;
+    roleDesc = i <= 3 ? '高分辨率浅层几何/纹理提取' : '高分辨率细节重建与输出融合';
+  }
+
+  BLOCKS.push({
+    id: i, stage: st, depth: d, res: STAGE_RES[st], kernel: kName, roleDesc,
+    x, y, z, radius,
+    color: STAGE_COLORS[st],
+    us: st === 'C32' ? 340 : st === 'C512' ? 110 : st === 'ViT' ? 105 : 75
+  });
+}
+
+const SKIP_BRIDGES = [
+  [3, 66, 'C32 Skip (960×576 边缘直通)'],
+  [7, 61, 'C64 Skip (480×288 特征桥)'],
+  [12, 55, 'C128 Skip (240×144 特征桥)'],
+  [19, 47, 'C256 Skip (120×72 特征桥)'],
+  [28, 38, 'C512 Skip (60×36 深层残差桥)']
+];
+
+// ============================================================================
+// 3. 状态控制与 UI 渲染
+// ============================================================================
+const activeCuts = new Set(CUTS.map(c => c.id));
+let inspectedCut = CUTS[5];
+let currentStage = 'ALL';
+let currentLessonIdx = 0;
+let pulseTime = -10;
+
+let rotX = 0.26, rotY = 0.18, zoom = 1.0, panY = 0;
+let targetRotX = 0.26, targetRotY = 0.18, targetZoom = 1.0, targetPanY = 0;
+
+function setLesson(idx) {
+  currentLessonIdx = (idx + LESSONS.length) % LESSONS.length;
+  const les = LESSONS[currentLessonIdx];
+  document.getElementById('lesson-title').innerHTML = les.title;
+  document.getElementById('lesson-desc').innerHTML = les.desc;
+  currentStage = les.stage;
+  document.getElementById('focus-stage-label').textContent = les.stage === 'ALL' ? 'ALL 71 BLOCKS' : `${les.stage} STAGE`;
+  targetRotX = les.cam.rotX;
+  targetRotY = les.cam.rotY;
+  targetZoom = les.cam.zoom;
+  targetPanY = les.cam.panY;
+  pulseTime = 0;
+  renderLessonTabs();
+  renderStagesUI();
+}
+
+function renderLessonTabs() {
+  const wrap = document.getElementById('lesson-tabs');
+  wrap.innerHTML = '';
+  LESSONS.forEach((l, i) => {
+    const b = document.createElement('button');
+    b.className = `lesson-tab ${i === currentLessonIdx ? 'active' : ''}`;
+    b.textContent = l.tab;
+    b.onclick = () => setLesson(i);
+    wrap.appendChild(b);
+  });
+}
+
+document.getElementById('btn-prev-lesson').onclick = () => setLesson(currentLessonIdx - 1);
+document.getElementById('btn-next-lesson').onclick = () => setLesson(currentLessonIdx + 1);
+
+const cutsContainer = document.getElementById('cuts-container');
+const isaTerminal = document.getElementById('isa-terminal');
+const isaTag = document.getElementById('isa-tag');
+
+function renderCutsUI() {
+  cutsContainer.innerHTML = '';
+  CUTS.forEach(c => {
+    const isOn = activeCuts.has(c.id);
+    const isInspect = inspectedCut.id === c.id;
+    const div = document.createElement('div');
+    div.className = `cut-card ${isOn ? 'active' : ''} ${isInspect ? 'selected-inspect' : ''}`;
+    div.innerHTML = `
+      <div class="cut-header">
+        <span class="cut-name">${isOn ? '✅' : '⬜'} ${c.name}</span>
+        <span class="cut-delta">-${c.deltaUs.toFixed(1)} µs</span>
+      </div>
+      <div class="cut-desc">${c.desc}</div>
+    `;
+    div.onclick = () => {
+      if (activeCuts.has(c.id)) activeCuts.delete(c.id);
+      else activeCuts.add(c.id);
+      inspectedCut = c;
+      pulseTime = 0;
+      updateMetricsAndUI();
+    };
+    cutsContainer.appendChild(div);
+  });
+}
+
+function renderISA(cut) {
+  const isOn = activeCuts.has(cut.id);
+  isaTag.textContent = `${cut.commit} · ${isOn ? '已开启 (OPTIMIZED)' : '已关闭 (STOCK)'}`;
+  isaTag.style.color = isOn ? 'var(--emerald)' : 'var(--crimson)';
+
+  let html = `<div class="isa-head">▼ 优化前 (未优化的 RDNA4 汇编):</div>`;
+  cut.isaBefore.forEach(line => {
+    html += `<div class="isa-line ${line.startsWith(';') ? 'isa-comment' : 'isa-bad'}">${line}</div>`;
+  });
+  html += `<div class="isa-head" style="margin-top:10px;">⚡ 优化后 (实战落地 RDNA4 汇编):</div>`;
+  cut.isaAfter.forEach(line => {
+    html += `<div class="isa-line ${line.startsWith(';') ? 'isa-comment' : 'isa-good'}">${line}</div>`;
+  });
+  isaTerminal.innerHTML = html;
+}
+
+const stagePills = document.getElementById('stage-pills');
+function renderStagesUI() {
+  stagePills.innerHTML = '';
+  const ratio = activeCuts.size / CUTS.length;
+  STAGES.forEach(s => {
+    const curMs = s.baseMs - (s.baseMs - s.optMs) * ratio;
+    const btn = document.createElement('button');
+    btn.className = `stage-btn ${currentStage === s.id ? 'active' : ''}`;
+    btn.innerHTML = `
+      <div class="stage-btn-title">${s.name}</div>
+      <div class="stage-btn-meta">${s.meta}</div>
+      <div class="stage-btn-ms">${curMs.toFixed(3)} ms</div>
+    `;
+    btn.onclick = () => {
+      currentStage = s.id;
+      document.getElementById('focus-stage-label').textContent = s.id === 'ALL' ? 'ALL 71 BLOCKS' : `${s.id} STAGE`;
+      if (s.id === 'ViT') { targetRotX = 0.25; targetRotY = 0.0; targetZoom = 1.48; targetPanY = -68; }
+      else if (s.id === 'C512') { targetRotX = 0.30; targetRotY = 0.24; targetZoom = 1.32; targetPanY = -42; }
+      else if (s.id === 'C32') { targetRotX = 0.20; targetRotY = -0.25; targetZoom = 1.1; targetPanY = 30; }
+      else { targetRotX = 0.26; targetRotY = 0.18; targetZoom = 1.0; targetPanY = 0; }
+      renderStagesUI();
+    };
+    stagePills.appendChild(btn);
+  });
+}
+
+let currentTotalMs = 9.055;
+function updateMetricsAndUI() {
+  let savedUs = 0, dispDelta = 0, bwSaved = 0, l0 = 69.0, occ = 65.0;
+  CUTS.forEach(c => {
+    if (activeCuts.has(c.id)) {
+      savedUs += c.deltaUs;
+      dispDelta += c.dispDelta;
+      bwSaved += c.bwSavedMB;
+      l0 += c.l0Gain;
+      occ += c.occGain;
+    }
+  });
+
+  const scale = 554.0 / 628.1;
+  currentTotalMs = 9.609 - (savedUs * scale) / 1000.0;
+  const bestMs = currentTotalMs - 0.110;
+  const fps = currentTotalMs <= 9.12 ? 60.0 : Math.min(60.0, +(58.2 + (9.609 - currentTotalMs) * 3.3).toFixed(1));
+  const dispatches = 161 + dispDelta;
+
+  document.getElementById('kpi-ms').textContent = `${currentTotalMs.toFixed(3)} ms`;
+  document.getElementById('kpi-best').textContent = `${bestMs.toFixed(3)} ms`;
+  const elFps = document.getElementById('kpi-fps');
+  elFps.textContent = `${fps.toFixed(1)} FPS`;
+  elFps.className = `kpi-val ${fps >= 60.0 ? 'green' : 'warn'}`;
+  document.getElementById('kpi-disp').textContent = `${dispatches}`;
+  document.getElementById('active-cuts-badge').textContent = `${activeCuts.size} / ${CUTS.length} 已开启`;
+
+  document.getElementById('val-l0').textContent = `${l0.toFixed(1)}%`;
+  document.getElementById('bar-l0').style.width = `${Math.min(100, l0)}%`;
+  document.getElementById('val-occ').textContent = `${(occ / 10).toFixed(1)} / 10 waves`;
+  document.getElementById('bar-occ').style.width = `${Math.min(100, occ)}%`;
+  document.getElementById('val-bw').textContent = `-${bwSaved.toFixed(1)} MB / 帧`;
+  document.getElementById('bar-bw').style.width = `${Math.min(100, (bwSaved / 681.5) * 95 + 5)}%`;
+
+  renderCutsUI();
+  renderISA(inspectedCut);
+  renderStagesUI();
+}
+
+document.getElementById('btn-all-on').onclick = () => {
+  CUTS.forEach(c => activeCuts.add(c.id));
+  inspectedCut = CUTS[5];
+  pulseTime = 0;
+  updateMetricsAndUI();
+};
+
+document.getElementById('btn-baseline').onclick = () => {
+  activeCuts.clear();
+  inspectedCut = CUTS[0];
+  updateMetricsAndUI();
+};
+
+document.getElementById('btn-pulse').onclick = () => { pulseTime = 0; };
+document.getElementById('btn-reset-cam').onclick = () => {
+  currentStage = 'ALL';
+  targetRotX = 0.26; targetRotY = 0.18; targetZoom = 1.0; targetPanY = 0;
+  renderStagesUI();
+};
+
+// ============================================================================
+// 4. 零依赖 3D 全息渲染引擎 (真实呈现 Input G-Buffers -> 71-Block U-Net -> Output Frame)
+// ============================================================================
+const canvas = document.getElementById('gl-canvas');
+const ctx = canvas.getContext('2d');
+let W = window.innerWidth, H = window.innerHeight;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+let isDragging = false, lastMX = 0, lastMY = 0, mouseX = -999, mouseY = -999;
+canvas.addEventListener('mousedown', e => { isDragging = true; lastMX = e.clientX; lastMY = e.clientY; });
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  if (isDragging) {
+    targetRotY += (e.clientX - lastMX) * 0.007;
+    targetRotX = Math.max(-0.6, Math.min(0.95, targetRotX + (e.clientY - lastMY) * 0.006));
+    lastMX = e.clientX; lastMY = e.clientY;
+  }
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  targetZoom = Math.max(0.55, Math.min(2.2, targetZoom - e.deltaY * 0.001));
+}, { passive: false });
+
+function project3D(x, y, z) {
+  const cy = Math.cos(rotY), sy = Math.sin(rotY);
+  let x1 = x * cy - z * sy;
+  let z1 = x * sy + z * cy;
+  let y1 = y + panY;
+
+  const cx = Math.cos(rotX), sx = Math.sin(rotX);
+  let y2 = y1 * cx - z1 * sx;
+  let z2 = y1 * sx + z1 * cx;
+
+  const fov = 760 * zoom;
+  const dist = 690;
+  const scale = fov / Math.max(120, dist + z2);
+  return {
+    sx: W * 0.48 + x1 * scale,
+    sy: H * 0.52 - y2 * scale,
+    scale,
+    depth: z2
+  };
+}
+
+const PARTICLES = [];
+for (let i = 0; i < 450; i++) {
+  PARTICLES.push({
+    t: Math.random() * 70,
+    speed: 0.16 + Math.random() * 0.18,
+    phase: Math.random() * Math.PI * 2,
+    radial: 0.4 + Math.random() * 0.9
+  });
+}
+
+const sparkCanvas = document.getElementById('spark-canvas');
+const sctx = sparkCanvas.getContext('2d');
+const msHistory = new Array(90).fill(9.055);
+
+function drawSparkline() {
+  msHistory.push(currentTotalMs + (Math.random() - 0.5) * 0.03);
+  msHistory.shift();
+  sctx.clearRect(0, 0, 368, 48);
+
+  const y9 = 48 - ((9.0 - 8.7) / (9.8 - 8.7)) * 38 - 5;
+  sctx.strokeStyle = 'rgba(255, 191, 0, 0.35)';
+  sctx.setLineDash([4, 4]);
+  sctx.beginPath(); sctx.moveTo(0, y9); sctx.lineTo(368, y9); sctx.stroke();
+  sctx.setLineDash([]);
+
+  sctx.strokeStyle = currentTotalMs <= 9.12 ? '#00ff9d' : '#ff3864';
+  sctx.lineWidth = 1.8;
+  sctx.beginPath();
+  msHistory.forEach((v, idx) => {
+    const x = (idx / 89) * 358 + 5;
+    const y = 48 - ((v - 8.7) / (9.8 - 8.7)) * 38 - 5;
+    if (idx === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
+  });
+  sctx.stroke();
+
+  sctx.font = '10px Consolas, monospace';
+  sctx.fillStyle = '#00e5ff';
+  sctx.fillText(`ABBA 帧耗时波形 (${currentTotalMs.toFixed(2)}ms · 黄虚线=9.0ms)`, 8, 12);
+}
+
+let time = 0;
+const tooltip = document.getElementById('node-tooltip');
+
+function animate() {
+  requestAnimationFrame(animate);
+  time += 0.018;
+  if (pulseTime >= 0) {
+    pulseTime += 1.15;
+    if (pulseTime > 85) pulseTime = -10;
+  }
+
+  if (!isDragging) targetRotY += 0.0012;
+  rotX += (targetRotX - rotX) * 0.08;
+  rotY += (targetRotY - rotY) * 0.08;
+  zoom += (targetZoom - zoom) * 0.08;
+  panY += (targetPanY - panY) * 0.08;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 1. 底部空间坐标环与分辨率深度标尺
+  ctx.save();
+  for (let r = 140; r <= 440; r += 100) {
+    ctx.beginPath();
+    for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.15) {
+      const p = project3D(Math.cos(a) * r, -175, Math.sin(a) * r);
+      if (a === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.06)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 2. 投影 71 个算子块
+  const projBlocks = BLOCKS.map(b => {
+    const bob = Math.sin(time * 2.1 + b.id * 0.25) * 2.8;
+    const p = project3D(b.x, b.y + bob, b.z);
+    const inStage = currentStage === 'ALL' || b.stage === currentStage;
+    return { ...b, ...p, inStage };
+  });
+
+  // 3. 绘制 좌上角 D3D12 Input G-Buffers 与 右上角 Final Output Frame 端点 (真实的物理输入/输出！)
+  const bFirst = projBlocks[0], bLast = projBlocks[70];
+  const inHub  = project3D(BLOCKS[0].x - 65, BLOCKS[0].y + 52, BLOCKS[0].z);
+  const outHub = project3D(BLOCKS[70].x + 65, BLOCKS[70].y + 52, BLOCKS[70].z);
+
+  // 输入/输出连线
+  ctx.beginPath();
+  ctx.moveTo(inHub.sx, inHub.sy); ctx.lineTo(bFirst.sx, bFirst.sy);
+  ctx.strokeStyle = 'rgba(255, 191, 0, 0.65)'; ctx.lineWidth = 2.2; ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(bLast.sx, bLast.sy); ctx.lineTo(outHub.sx, outHub.sy);
+  ctx.strokeStyle = 'rgba(0, 255, 157, 0.65)'; ctx.lineWidth = 2.2; ctx.stroke();
+
+  function drawEndpointCard(p, title, sub, rgb) {
+    const w = 138 * p.scale, h = 42 * p.scale;
+    ctx.fillStyle = 'rgba(6, 12, 22, 0.9)';
+    ctx.strokeStyle = `rgba(${rgb}, 0.85)`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.roundRect(p.sx - w / 2, p.sy - h / 2, w, h, 6 * p.scale);
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = `rgb(${rgb})`;
+    ctx.font = `bold ${Math.max(9, Math.round(10.5 * p.scale))}px Consolas, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(title, p.sx, p.sy - 3 * p.scale);
+    ctx.fillStyle = '#cbe0f0';
+    ctx.font = `${Math.max(8, Math.round(9.5 * p.scale))}px Consolas, sans-serif`;
+    ctx.fillText(sub, p.sx, p.sy + 11 * p.scale);
+  }
+  drawEndpointCard(inHub, '📥 D3D12 INPUT (11 Tex)', 'Noisy + Albedo + Normal + MV', '255, 191, 0');
+  drawEndpointCard(outHub, '📤 DLSS-5 OUTPUT', '1920×1080 Denoised 60FPS', '0, 255, 157');
+
+  // 4. 绘制 U-Net 主干连接脊线
+  for (let i = 0; i < 70; i++) {
+    const a = projBlocks[i], b = projBlocks[i + 1];
+    const alpha = (a.inStage && b.inStage) ? 0.55 : 0.12;
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy);
+    ctx.strokeStyle = `rgba(${a.color[0]}, ${a.color[1]}, ${a.color[2]}, ${alpha})`;
+    ctx.lineWidth = 2.5 * a.scale;
+    ctx.stroke();
+  }
+
+  // 5. 绘制 5 座跨层 Skip-Connection 残差光桥（带文字标注）
+  SKIP_BRIDGES.forEach(([i0, i1, label]) => {
+    const a = projBlocks[i0], b = projBlocks[i1];
+    const mid = project3D((a.x + b.x) * 0.5, a.y + 38, (a.z + b.z) * 0.5);
+    const alpha = (a.inStage || b.inStage) ? 0.45 : 0.1;
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy);
+    ctx.quadraticCurveTo(mid.sx, mid.sy, b.sx, b.sy);
+    ctx.setLineDash([6, 5]);
+    ctx.strokeStyle = `rgba(${a.color[0]}, ${a.color[1]}, ${a.color[2]}, ${alpha})`;
+    ctx.lineWidth = 1.6 * a.scale;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (a.inStage || b.inStage) {
+      ctx.fillStyle = `rgba(${a.color[0]}, ${a.color[1]}, ${a.color[2]}, ${alpha + 0.15})`;
+      ctx.font = `${Math.max(8, Math.round(9.5 * mid.scale))}px Consolas, monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(label, mid.sx, mid.sy + 14 * mid.scale);
+    }
+  });
+
+  // 6. 绘制实时特征 Token 粒子流 (1B E4M3 ByteStream 开启时收束成高密度激光束)
+  const byteStreamOn = activeCuts.has('vit_byte_stream');
+  const w16On = activeCuts.has('c512_w16') && activeCuts.has('split_ffn_w16');
+  const speedMul = (byteStreamOn ? 1.55 : 0.85) * (w16On ? 1.25 : 0.9);
+  const spreadMul = byteStreamOn ? 4.2 : 17.5;
+
+  PARTICLES.forEach(pt => {
+    pt.t += pt.speed * speedMul;
+    if (pt.t >= 70) pt.t -= 70;
+    const idx = Math.floor(pt.t);
+    const frac = pt.t - idx;
+    const b0 = BLOCKS[idx], b1 = BLOCKS[Math.min(70, idx + 1)];
+
+    const px = b0.x + (b1.x - b0.x) * frac;
+    const py = b0.y + (b1.y - b0.y) * frac + Math.cos(time * 3 + pt.phase) * spreadMul * pt.radial;
+    const pz = b0.z + (b1.z - b0.z) * frac + Math.sin(time * 3 + pt.phase) * spreadMul * pt.radial;
+
+    const proj = project3D(px, py, pz);
+    const c = b0.color;
+    ctx.beginPath();
+    ctx.arc(proj.sx, proj.sy, Math.max(1.2, (byteStreamOn ? 2.5 : 1.8) * proj.scale), 0, Math.PI * 2);
+    ctx.fillStyle = byteStreamOn
+      ? `rgba(0, 255, 180, 0.85)`
+      : `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.55)`;
+    ctx.fill();
+  });
+
+  // 7. 按深度排序绘制 71 个算子晶体节点
+  const sortedBlocks = [...projBlocks].sort((a, b) => b.depth - a.depth);
+  let hoveredNode = null;
+
+  sortedBlocks.forEach(b => {
+    const r = b.radius * b.scale;
+    const dx = mouseX - b.sx, dy = mouseY - b.sy;
+    const isHover = Math.hypot(dx, dy) < r * 1.45;
+    if (isHover) hoveredNode = b;
+
+    const pulseDist = Math.abs(b.id - pulseTime);
+    const pulseBoost = pulseDist < 4.5 ? (1 - pulseDist / 4.5) : 0;
+
+    const alpha = b.inStage ? 0.92 : 0.18;
+    const [cr, cg, cb] = b.color;
+
+    if (b.inStage || pulseBoost > 0) {
+      const glowR = r * (2.1 + pulseBoost * 1.6);
+      const g = ctx.createRadialGradient(b.sx, b.sy, r * 0.2, b.sx, b.sy, glowR);
+      g.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${0.52 * alpha + pulseBoost * 0.4})`);
+      g.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`);
+      ctx.beginPath();
+      ctx.arc(b.sx, b.sy, glowR, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    }
+
+    ctx.save();
+    ctx.translate(b.sx, b.sy);
+    ctx.rotate(time * 0.8 + b.id * 0.3);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.25, r * 0.72, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = isHover ? '#ffffff' : `rgba(${cr}, ${cg}, ${cb}, ${alpha})`;
+    ctx.lineWidth = isHover ? 2.5 : 1.4;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, r * (0.62 + pulseBoost * 0.35), 0, Math.PI * 2);
+    ctx.fillStyle = pulseBoost > 0.2 ? '#ffffff' : `rgba(${cr}, ${cg}, ${cb}, ${alpha})`;
+    ctx.fill();
+    ctx.restore();
+
+    if ([0, 4, 8, 13, 20, 29, 33, 38, 47, 55, 61, 66, 70].includes(b.id) && b.inStage) {
+      ctx.fillStyle = `rgba(235, 245, 255, ${alpha})`;
+      ctx.font = `bold ${Math.max(9, Math.round(10.5 * b.scale))}px Consolas, monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`B${b.id}:${b.stage}`, b.sx, b.sy + r * 1.9);
+    }
+  });
+
+  // 8. 悬停提示框
+  if (hoveredNode) {
+    tooltip.style.display = 'block';
+    tooltip.style.left = `${mouseX + 16}px`;
+    tooltip.style.top = `${mouseY - 20}px`;
+    const ratio = activeCuts.size / CUTS.length;
+    const curUs = (hoveredNode.us * (1 - 0.14 * ratio)).toFixed(1);
+    tooltip.innerHTML = `
+      <div style="color:var(--amber);font-weight:bold;font-size:12.5px;margin-bottom:4px;">
+        Block #${hoveredNode.id} // ${hoveredNode.stage} (${hoveredNode.id < 29 ? 'Encoder 下采样' : hoveredNode.id <= 37 ? 'ViT 全局瓶颈' : 'Decoder 上采样'})
+      </div>
+      <div style="color:#fff;margin-bottom:4px;">作用: ${hoveredNode.roleDesc}</div>
+      <div style="color:var(--cyan);margin-bottom:3px;">Kernel: ${hoveredNode.kernel}</div>
+      <div>特征图尺寸: <span style="color:#fff">${hoveredNode.res}</span></div>
+      <div>单算子耗时: <span style="color:var(--emerald);font-weight:bold;">${curUs} µs</span></div>
+      <div style="color:var(--muted);font-size:10px;margin-top:4px;">访存模式: ${activeCuts.has('c512_w16') ? '16-Byte W16 (b128) + 1B E4M3' : '2x 8-Byte Legacy'}</div>
+    `;
+  } else {
+    tooltip.style.display = 'none';
+  }
+
+  drawSparkline();
+}
+
+setLesson(0);
+updateMetricsAndUI();
+animate();
+</script>
+</body>
+</html>
