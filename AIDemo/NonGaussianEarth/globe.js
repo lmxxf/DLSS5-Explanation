@@ -89,7 +89,10 @@ function addFootprint(grid, lithology, nx, ny, site, radius) {
           Math.min(1, d * 5);
       const index = j * (nx + 1) + i;
       const height = (peak + 0.021) * profile * ribs;
-      if (height > grid[index]) {grid[index] = height; lithology[index] = k > 10 ? 1 : 0;}
+      if (height > grid[index]) {
+        grid[index] = height;
+        lithology[index] = k > 10 ? 1 : 0;
+      }
     }
   }
 }
@@ -97,7 +100,8 @@ function addFootprint(grid, lithology, nx, ny, site, radius) {
 function makeSurface(sites, nx, ny) {
   const geo = new T.BufferGeometry();
   const count = (nx + 1) * (ny + 1);
-  const grid = new Float32Array(count), lithology = new Float32Array(count);
+  const grid = new Float32Array(count),
+    lithology = new Float32Array(count);
   const positions = new Float32Array(count * 3),
     unitDirs = new Float32Array(count * 3);
   const indices = [];
@@ -130,7 +134,10 @@ function makeSurface(sites, nx, ny) {
     const lat = Math.PI * (j / ny - 0.5);
     for (let i = 0; i <= nx; i++) {
       const n = j * (nx + 1) + i;
-      if (i === nx) grid[n] = grid[j * (nx + 1)];
+      if (i === nx) {
+        grid[n] = grid[j * (nx + 1)];
+        lithology[n] = lithology[j * (nx + 1)];
+      }
       const lon = (TAU * i) / nx;
       const x = Math.cos(lat) * Math.cos(lon),
         y = Math.sin(lat),
@@ -150,6 +157,7 @@ function makeSurface(sites, nx, ny) {
   geo.setIndex(indices);
   geo.setAttribute("position", new T.BufferAttribute(positions, 3));
   geo.setAttribute("direction", new T.BufferAttribute(unitDirs, 3));
+  geo.setAttribute("mainland", new T.BufferAttribute(lithology, 1));
   geo.setAttribute("bed", new T.BufferAttribute(grid, 1));
   geo.computeVertexNormals();
   // The longitude seam and poles carry duplicate vertices.
@@ -368,6 +376,7 @@ export function createGlobe(container, { onPick, onHover } = {}) {
     primaryColor = "#efad60",
     follow = false,
     tide = 4.64,
+    tideMode = false,
     comparisons = [];
   let dirtySelection = true,
     sizeDistance = 3.5,
@@ -732,9 +741,12 @@ export function createGlobe(container, { onPick, onHover } = {}) {
       vertexColors: true,
       transparent: true,
       depthWrite: false,
-      uniforms: { dpi: { value: renderer.getPixelRatio() } },
-      vertexShader: `attribute vec3 dummy;uniform float dpi;varying vec3 rgb;void main(){rgb=color;vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_PointSize=clamp(8./(-p.z),2.,5.)*dpi;}`,
-      fragmentShader: `varying vec3 rgb;void main(){float d=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(rgb,1.-smoothstep(.55,1.,d));}`,
+      uniforms: {
+        dpi: { value: renderer.getPixelRatio() },
+        tideMode: { value: tideMode ? 1 : 0 },
+      },
+      vertexShader: `uniform float tideMode;uniform float dpi;varying vec3 rgb;void main(){rgb=color;vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_PointSize=clamp(8./(-p.z),2.,5.)*dpi*(1.+2.2*tideMode);}`,
+      fragmentShader: `uniform float tideMode;varying vec3 rgb;void main(){float d=length(gl_PointCoord-.5)*2.;float disk=1.-smoothstep(.55,1.,d);float ring=1.-smoothstep(.08,.20,abs(d-.66));gl_FragColor=vec4(rgb,mix(disk,max(ring,.6*disk),tideMode));}`,
     });
     signalDots = new T.Points(g, m);
     signals.add(signalDots);
@@ -835,6 +847,7 @@ export function createGlobe(container, { onPick, onHover } = {}) {
     }
     frames = nextFrames || [];
     coords = frames.map((f) => (unit(f.p) ? V(f.p) : null));
+    tideMode = Boolean(opts.tideMode);
     primaryColor = opts.color || "#efb765";
     comparisons = (opts.comparisons || [])
       .filter((c) => c.frames?.length)

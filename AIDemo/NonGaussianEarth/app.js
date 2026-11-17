@@ -712,6 +712,7 @@ function showPick(island, f, point) {
     esc(words(island)) +
     "</div>";
   box.hidden = false;
+  box.classList.toggle("pinned", Boolean(locked));
   box.style.left =
     Math.max(
       4,
