@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#172627" />
+    <meta
+      name="description"
+      content="沿 Qwen3.8-27B 的真实激活轨迹航行，在 3D 球面上追踪思维链逐词经过的独立成分。"
+    />
+    <title>
+      高维地球 · 非高斯大陆：思维链 3D 电子海图仪 | Non-Gaussian Earth: 3D CoT
+      Navigation Atlas
+    </title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23192826'/%3E%3Ccircle cx='32' cy='32' r='23' fill='none' stroke='%23e9ba72' stroke-width='2'/%3E%3Cpath d='M32 4l4 23 17-16-16 17 23 4-23 4 16 17-17-16-4 23-4-23-17 16 16-17-23-4 23-4-16-17 17 16z' fill='%23e9ba72'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <symbol id="ico-globe" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <ellipse cx="12" cy="12" rx="4.5" ry="9" />
+          <path d="M3 12h18M5 6.5c4 2 10 2 14 0M5 17.5c4-2 10-2 14 0" />
+        </symbol>
+        <symbol id="ico-route" viewBox="0 0 24 24">
+          <path d="m2 18 6-9 4 5 4-9 6 13H2zM5 14l3 1 2-3m4-3 2 2 2-2" />
+        </symbol>
+        <symbol id="ico-turn" viewBox="0 0 24 24">
+          <path d="M3 18 13 7q3-3 5 0l3 6M15 12l6 1 1-6" />
+        </symbol>
+        <symbol id="ico-port" viewBox="0 0 24 24">
+          <circle cx="12" cy="5" r="2" />
+          <path d="M12 7v14M8 11h8M3 14q0 6 9 7 9-1 9-7m-18 0 3 2m15-2-3 2" />
+        </symbol>
+        <symbol id="ico-tide" viewBox="0 0 24 24">
+          <path
+            d="M2 9q3-4 6 0t6 0 6 0l2 1M2 15q3-4 6 0t6 0 6 0l2 1M5 3v2m6-2v2m6-2v2"
+          />
+        </symbol>
+        <symbol id="ico-view" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5" />
+          <ellipse
+            cx="12"
+            cy="12"
+            rx="11"
+            ry="4"
+            transform="rotate(-30 12 12)"
+          />
+        </symbol>
+        <symbol id="ico-follow" viewBox="0 0 24 24">
+          <path d="m4 11 16-7-7 16-2-7-7-2z" />
+        </symbol>
+        <symbol id="ico-reset" viewBox="0 0 24 24">
+          <path d="M4 9a8 8 0 1 1 0 7M3 4v6h6" />
+        </symbol>
+        <symbol id="ico-info" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 10v6m0-10v1" />
+        </symbol>
+        <symbol id="ico-menu" viewBox="0 0 24 24">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </symbol>
+        <symbol id="ico-up" viewBox="0 0 24 24">
+          <path d="m5 15 7-7 7 7" />
+        </symbol>
+        <symbol id="ico-close" viewBox="0 0 24 24">
+          <path d="m5 5 14 14M19 5 5 19" />
+        </symbol>
+        <symbol id="ico-play" viewBox="0 0 24 24">
+          <path fill="currentColor" stroke="none" d="M7 4v16l13-8z" />
+        </symbol>
+        <symbol id="ico-pause" viewBox="0 0 24 24">
+          <path
+            fill="currentColor"
+            stroke="none"
+            d="M6 4h4v16H6zm8 0h4v16h-4z"
+          />
+        </symbol>
+        <symbol id="ico-prev" viewBox="0 0 24 24">
+          <path
+            fill="currentColor"
+            stroke="none"
+            d="M4 5h2v14H4zm14 0L7 12l11 7z"
+          />
+        </symbol>
+        <symbol id="ico-next" viewBox="0 0 24 24">
+          <path
+            fill="currentColor"
+            stroke="none"
+            d="M18 5h2v14h-2zM6 5l11 7-11 7z"
+          />
+        </symbol>
+        <symbol id="ico-tele" viewBox="0 0 24 24">
+          <path d="M2 13h5l3-8 4 14 3-7h5" />
+        </symbol>
+      </defs>
+    </svg>
+    <header class="mast">
+      <div class="mast-inner">
+        <div class="brand">
+          <svg class="mark" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+            <circle cx="26" cy="26" r="20" stroke="currentColor" />
+            <circle
+              cx="26"
+              cy="26"
+              r="16.5"
+              stroke="currentColor"
+              stroke-dasharray="1 3"
+            />
+            <path
+              d="m26 1 3 21 14-13-12 15 20 2-21 3 13 14-15-12-2 20-3-21L9 43l12-15L1 26l21-3L9 9l15 12z"
+              fill="currentColor"
+            />
+            <path
+              d="m26 8 1.5 17.5L44 26l-17.5 1.5L26 44l-1.5-17.5L8 26l17.5-1.5z"
+              fill="#e9b367"
+            />
+          </svg>
+          <div>
+            <h1>高维地球<span>·</span>非高斯大陆</h1>
+            <div class="mast-en">
+              NON-GAUSSIAN EARTH <i>/</i> 3D CoT NAVIGATION ATLAS
+            </div>
+          </div>
+        </div>
+        <div class="mast-right">
+          <span class="model">Qwen3.8-27B <i>·</i> ICA-Lens v3</span
+          ><button id="methodBtn" class="method" type="button">
+            <svg><use href="#ico-info" /></svg><span>制图说明</span></button
+          ><a
+            href="../index.html"
+            class="back"
+            title="返回 AIDemo 展厅"
+            aria-label="返回 AIDemo 展厅"
+            >↗</a
+          >
+        </div>
+      </div>
+    </header>
+    <main>
+      <nav id="routes" aria-label="实验航线"></nav>
+      <div class="console">
+        <section class="map" aria-label="交互式三维海图">
+          <header class="map-head">
+            <div>
+              <span class="pilot"></span><b>球面航图</b
+              ><small>SPHERICAL CHART</small>
+            </div>
+            <select id="mobileSample" aria-label="航线样本"></select>
+            <div class="map-tools">
+              <button
+                id="follow"
+                title="切换自由轨道与船首跟拍"
+                aria-pressed="false"
+              >
+                <svg><use href="#ico-view" /></svg><span>自由轨道</span></button
+              ><button
+                class="sq"
+                id="reset"
+                title="复位视角"
+                aria-label="复位视角"
+              >
+                <svg><use href="#ico-reset" /></svg>
+              </button>
+            </div>
+          </header>
+          <div class="stage">
+            <div id="globe"></div>
+            <div class="map-stamp">
+              <span id="layerStamp">L32</span><span>ICA · S²</span>
+            </div>
+            <div class="map-fix" aria-label="当前词元">
+              <span id="fixMode"></span><strong id="fixToken"></strong
+              ><small id="fixCoord"></small>
+            </div>
+            <div id="pickCard" hidden class="pick-card"></div>
+            <div class="legend">
+              <span><i></i>大陆 κ &gt; 10</span
+              ><span><i></i>浅滩 1 &lt; κ ≤ 10</span
+              ><span><i></i>高斯海平线</span>
+            </div>
+            <div class="frame-code" id="mapTime"></div>
+            <div id="loading">正在载入实测海图…</div>
+          </div>
+          <div class="transport">
+            <button
+              id="play"
+              class="play"
+              aria-label="播放"
+              title="播放 / 暂停（空格）"
+            >
+              <svg><use href="#ico-play" /></svg></button
+            ><button id="prev" class="step" aria-label="上一步">
+              <svg><use href="#ico-prev" /></svg></button
+            ><button id="next" class="step" aria-label="下一步">
+              <svg><use href="#ico-next" /></svg></button
+            ><output id="counter"></output
+            ><input
+              id="seek"
+              type="range"
+              min="0"
+              max="1"
+              value="0"
+              aria-label="选择航迹帧"
+            /><select id="speed" aria-label="播放倍速">
+              <option value=".5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select>
+          </div>
+        </section>
+        <aside class="log">
+          <header class="log-head">
+            <span
+              ><svg><use href="#ico-menu" /></svg>航行日志
+              <small>VOYAGE LOG</small></span
+            ><button
+              id="fold"
+              title="折叠或展开航行日志"
+              aria-label="折叠航行日志"
+              aria-expanded="true"
+            >
+              <svg><use href="#ico-up" /></svg>
+            </button>
+          </header>
+          <div class="log-body" id="logBody">
+            <div class="section-kicker" id="routeCode"></div>
+            <h2 id="routeTitle"></h2>
+            <p id="routeLead" class="route-lead"></p>
+            <div class="samples" id="samples" aria-label="选择实验样本"></div>
+            <div id="context"></div>
+            <div id="event"></div>
+            <div class="entry">
+              <div class="subhead">逐帧主岛 <small>ISLAND FIX</small></div>
+              <div id="fix"></div>
+            </div>
+            <div class="entry">
+              <div class="subhead" id="tokensTitle">
+                逐词记录 <small>TOKEN LOG</small>
+              </div>
+              <div class="tokens" id="tokens"></div>
+            </div>
+            <details id="raw">
+              <summary>查看实验原文</summary>
+              <p id="rawText"></p>
+            </details>
+          </div>
+        </aside>
+      </div>
+      <section class="telemetry">
+        <header>
+          <div>
+            <svg><use href="#ico-tele" /></svg><b>随船遥测</b>
+            <small>LIVE TELEMETRY</small>
+          </div>
+          <span id="teleRange"></span>
+        </header>
+        <div id="charts"></div>
+      </section>
+      <footer>
+        <span><i></i> ICA-Lens v3 <em>／</em> 第 375 期实验海图</span
+        ><a
+          href="https://github.com/lmxxf/grocery-haven/tree/master/icalens-v3-exp2-cot-navigation-20261117"
+          id="sourceLink"
+          >实验档案 ↗</a
+        >
+      </footer>
+    </main>
+    <dialog id="method">
+      <header>
+        <h2>制图说明</h2>
+        <button id="methodClose" aria-label="关闭">
+          <svg><use href="#ico-close" /></svg>
+        </button>
+      </header>
+      <div id="methodText"></div>
+    </dialog>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

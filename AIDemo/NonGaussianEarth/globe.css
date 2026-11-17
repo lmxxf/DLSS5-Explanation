@@ -1,0 +1,141 @@
+.atlas-planet {
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(
+    ellipse at 49% 43%,
+    #132e37 0%,
+    #0a1e29 39%,
+    #07141d 71%,
+    #071119 100%
+  );
+  touch-action: none;
+}
+.atlas-planet > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  outline: none;
+  touch-action: none;
+}
+.atlas-planet > canvas:focus-visible {
+  outline: 1px solid #ded4a5;
+  outline-offset: -3px;
+}
+.atlas-planet .planet-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  border: 0;
+  background: none;
+  outline: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #e3d5b0;
+  font:
+    500 10px/1.25 "IBM Plex Mono",
+    ui-monospace,
+    monospace;
+  letter-spacing: 0.045em;
+  text-shadow: 0 1px 3px #00131b;
+  white-space: nowrap;
+}
+.planet-marker .marker-leader {
+  width: 13px;
+  height: 1px;
+  background: linear-gradient(90deg, #dca94e, #c39a65);
+  display: inline-block;
+  transform-origin: left;
+}
+.planet-marker .marker-id {
+  display: block;
+  background: rgba(8, 24, 31, 0.91);
+  border: 1px solid #846f4b;
+  padding: 4px 6px;
+  box-shadow: 0 2px 9px #04121960;
+  border-radius: 2px;
+}
+.atlas-planet .planet-marker:focus-visible .marker-id,
+.atlas-planet .planet-marker:hover .marker-id {
+  outline: 1px solid #f4d492;
+  color: #fff3ca;
+}
+.atlas-planet .planet-axis-tag {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.76;
+  font:
+    8px/1 ui-monospace,
+    monospace;
+  color: #b6cad0;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 3px #07141d;
+}
+.atlas-planet .planet-marker.is-far .marker-id {
+  color: #a5c2bd;
+  background: #0b2028db;
+  border: 1px dashed #527574;
+}
+.atlas-planet .planet-marker.is-far .marker-leader {
+  background: #74a6a0;
+}
+.atlas-planet .turn-bearing {
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  background: #24231de8;
+  padding: 3px 6px;
+  color: #ffe5a9;
+  border: 1px solid #aa8958;
+  border-radius: 3px;
+  font:
+    600 11px/1.2 ui-monospace,
+    monospace;
+}
+.route-ink-key {
+  position: absolute;
+  right: 12px;
+  top: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  color: #b0c2bf;
+  font:
+    500 10px/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.025em;
+}
+.route-ink-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.route-ink-key i {
+  display: inline-block;
+  width: 11px;
+  border-top: 2px solid var(--ink);
+}
+.route-ink-key i.dashed {
+  border-top-style: dashed;
+  opacity: 0.85;
+}
+@media (max-width: 600px) {
+  .route-ink-key {
+    top: 10px;
+    right: 9px;
+    gap: 6px;
+    font-size: 8px;
+  }
+  .route-ink-key i {
+    width: 8px;
+  }
+}
+.route-ink-key i.survey{width:9px;height:9px;box-sizing:border-box;border:1px dashed var(--ink);border-radius:50%}
